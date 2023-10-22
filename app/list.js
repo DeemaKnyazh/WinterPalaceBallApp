@@ -1,5 +1,5 @@
 import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, Text, View, TextInput, Button, Modal, TouchableHighlight, ScrollView, FlatList, TouchableOpacity} from 'react-native';
+import { StyleSheet, Text, View, TextInput, Button, Modal, TouchableHighlight, ScrollView, FlatList, TouchableOpacity } from 'react-native';
 import * as SQLite from 'expo-sqlite';
 import { useState, useEffect } from 'react';
 import { BarCodeScanner } from 'expo-barcode-scanner';
@@ -8,6 +8,7 @@ import { Stack, useRouter } from "expo-router";
 export default function App() {
     const navigation = useRouter();
 
+    const [rerender, setrerender] = useState(0)
     const db = SQLite.openDatabase('WPB.db');
     const [isLoading, setIsLoading] = useState(false);
     const [names, setNames] = useState([]);
@@ -36,6 +37,10 @@ export default function App() {
         db.transaction(tx => {
             tx.executeSql('SELECT * FROM names', null,
                 (txObj, resultSet) => setNames(resultSet.rows._array),
+                (txObj, error) => console.log(error))
+        });
+        db.transaction(tx => {
+            tx.executeSql('SELECT * FROM names', null,
                 (txObj, resultSet) => setDisplayNames(resultSet.rows._array),
                 (txObj, error) => console.log(error))
         });
@@ -96,19 +101,19 @@ export default function App() {
         });
     }
 
-    const deleteName = (id) => {
-        db.transaction(tx => {
-            tx.executeSql('DELETE FROM names WHERE id = ?', [id],
-                (txObj, resultSet) => {
-                    if (resultSet.rowsAffected > 0) {
-                        let existingNames = [...names].filter(name => name.id !== id);
-                        setNames(existingNames)
-                    }
-                },
-                (txObj, error) => console.log(error)
-            );
-        });
-    };
+    // const deleteName = (id) => {
+    //     db.transaction(tx => {
+    //         tx.executeSql('DELETE FROM names WHERE id = ?', [id],
+    //             (txObj, resultSet) => {
+    //                 if (resultSet.rowsAffected > 0) {
+    //                     let existingNames = [...names].filter(name => name.id !== id);
+    //                     setNames(existingNames)
+    //                 }
+    //             },
+    //             (txObj, error) => console.log(error)
+    //         );
+    //     });
+    // };
 
     const findName = (test) => {
         let existingNames
@@ -215,13 +220,6 @@ export default function App() {
 
     return (
         <View style={styles.containerText}>
-            <View style={styles.barcodebox}>
-                <BarCodeScanner
-                    onBarCodeScanned={scanned ? undefined : handleBarCodeScanned}
-                    style={{ height: 400, width: 400 }} />
-            </View>
-            {/* <Text style={styles.maintext}>{text}</Text> */}
-            {/* {scanned && <Button title={'Scan again?'} onPress={() => setScanned(false)} color='tomato' />} */}
             <View>
                 <TextInput value={currentName} placeholder='name' onChangeText={setCurrentName} />
                 <TextInput value={currentTable} placeholder='table' onChangeText={setCurrentTable} />

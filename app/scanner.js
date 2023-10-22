@@ -7,16 +7,12 @@ import { Stack, useRouter } from "expo-router";
 
 export default function App() {
     const navigation = useRouter();
-
     const db = SQLite.openDatabase('WPB.db');
     const [isLoading, setIsLoading] = useState(false);
     const [names, setNames] = useState([]);
-    const [currentName, setCurrentName] = useState(undefined);
-    const [displayNames, setDisplayNames] = useState([]);
-    const [currentTable, setCurrentTable] = useState(undefined);
-    const [currentNameTest, setCurrentNameTest] = useState(undefined);
     const [scanned, setScanned] = useState(false);
     const [hasPermission, setHasPermission] = useState(null);
+    const [currentNameTest, setCurrentNameTest] = useState(undefined);
     const [activeJobType, setActiveJobType] = useState('None')
     const [activeStatusType, setActiveStatusType] = useState('None')
 
@@ -82,34 +78,6 @@ export default function App() {
         );
     }
 
-    const addName = () => {
-        db.transaction(tx => {
-            tx.executeSql('INSERT INTO names (name, sign, tables) values (?, 0, ?)', [currentName, currentTable],
-                (txObj, resultSet) => {
-                    let existingNames = [...names];
-                    existingNames.push({ id: resultSet.insertId, name: currentName, sign: 0, tables: currentTable });
-                    setNames(existingNames);
-                    setCurrentName(undefined)
-                },
-                (txObj, error) => console.log(error)
-            );
-        });
-    }
-
-    const deleteName = (id) => {
-        db.transaction(tx => {
-            tx.executeSql('DELETE FROM names WHERE id = ?', [id],
-                (txObj, resultSet) => {
-                    if (resultSet.rowsAffected > 0) {
-                        let existingNames = [...names].filter(name => name.id !== id);
-                        setNames(existingNames)
-                    }
-                },
-                (txObj, error) => console.log(error)
-            );
-        });
-    };
-
     const findName = (test) => {
         let existingNames
         for (i = 0; i < names.length; i++) {
@@ -129,7 +97,6 @@ export default function App() {
                         const indexToUpdate = existingNames.findIndex(name => name.id === id);
                         existingNames[indexToUpdate].sign = status === 1 ? 0 : 1;
                         setNames(existingNames);
-                        updateDisplayNameStatus(status === 0 ? 0 : 1)
                         setCurrentNameTest(undefined);
                         setModalVisible(!modalVisible)
                     }
@@ -147,70 +114,28 @@ export default function App() {
         setModalVisible(!modalVisible);
     }
 
-    const updateDisplayNameJob = (table) => {
-        updateDisplayName(table, activeStatusType)
-    }
-
-    const updateDisplayNameStatus = (status) => {
-        updateDisplayName(activeJobType, status)
-    }
-
-    const updateDisplayName = (table, status) => {
-        if (table == 'None' && status == 'None') {
-            let existingNames = names
-            setDisplayNames(existingNames)
-        }
-        else if (table == 'None') {
-            if (status == "Here") {
-                let existingNames = names.filter(name => name.sign === 1);
-                setDisplayNames(existingNames)
-            }
-            else if (status == "Not Here") {
-                let existingNames = names.filter(name => name.sign === 0);
-                setDisplayNames(existingNames)
-            }
-        }
-        else if (status == 'None') {
-            let existingNames = names.filter(name => name.tables === table);
-            setDisplayNames(existingNames)
-        }
-        else {
-            if (status == "Here") {
-                let existingNames = names.filter(name => name.tables === table);
-                let existingNames2 = existingNames.filter(name => name.sign === 1);
-                setDisplayNames(existingNames2)
-            }
-            else if (status == "Not Here") {
-                let existingNames = names.filter(name => name.tables === table);
-                let existingNames2 = existingNames.filter(name => name.sign === 0);
-                setDisplayNames(existingNames2)
-            }
-
-        }
-    }
-
     const showNames = () => {
-        return displayNames.map((name, index) => {
-            return (
-                <View style={styles.row(name.sign)}>
-                    <View style={{ width: "40%", alignItems: 'center' }}>
-                        <Text style={styles.textEntry}>{name.name}</Text>
-                    </View>
-                    <View style={{ width: "10%", alignItems: 'center' }}>
-                        <Text>{name.id}</Text>
-                    </View>
-                    <View style={{ width: "10%", alignItems: 'center' }}>
-                        <Text>{name.tables}</Text>
-                    </View>
-                    {/* <Button title='Delete' onPress={() => deleteName(name.id)} /> */}
-                    <View style={{ width: "20%", alignItems: 'center' }}>
-                        <View style={styles.button}>
-                            <Button style={styles.button} title='Info' onPress={() => { openSettingsModal(name.name, name.tables, name.sign, name.id); }} />
+            return names.map((name, index) => {
+                return (
+                    <View style={styles.row(name.sign)}>
+                        <View style={{ width: "40%", alignItems: 'center' }}>
+                            <Text style={styles.textEntry}>{name.name}</Text>
+                        </View>
+                        <View style={{ width: "10%", alignItems: 'center' }}>
+                            <Text>{name.id}</Text>
+                        </View>
+                        <View style={{ width: "10%", alignItems: 'center' }}>
+                            <Text>{name.tables}</Text>
+                        </View>
+                        {/* <Button title='Delete' onPress={() => deleteName(name.id)} /> */}
+                        <View style={{ width: "20%", alignItems: 'center' }}>
+                            <View style={styles.button}>
+                                <Button style={styles.button} title='Info' onPress={() => { openSettingsModal(name.name, name.tables, name.sign, name.id); }} />
+                            </View>
                         </View>
                     </View>
-                </View>
-            )
-        })
+                )
+            })        
     }
 
     return (
@@ -222,70 +147,6 @@ export default function App() {
             </View>
             {/* <Text style={styles.maintext}>{text}</Text> */}
             {/* {scanned && <Button title={'Scan again?'} onPress={() => setScanned(false)} color='tomato' />} */}
-            <View>
-                <TextInput value={currentName} placeholder='name' onChangeText={setCurrentName} />
-                <TextInput value={currentTable} placeholder='table' onChangeText={setCurrentTable} />
-                <Button title='Add Name' onPress={addName} />
-                <TextInput value={currentNameTest} placeholder='key' onChangeText={setCurrentNameTest} />
-                <Button title='Show Name' onPress={() => findName(currentNameTest)} />
-            </View>
-            <View>
-                <Text>Filter Table</Text>
-                <FlatList
-                    data={jobTypes}
-                    renderItem={({ item }) => (
-                        <TouchableOpacity
-                            style={styles.tab(activeJobType, item)}
-                            onPress={() => {
-                                setActiveJobType(item);
-                                updateDisplayNameJob(item);
-                            }}
-                        >
-                            <Text style={styles.tabText(activeJobType, item)}>{item}</Text>
-                        </TouchableOpacity>
-                    )}
-                    keyExtractor={item => item}
-                    contentContainerStyle={{ columnGap: 12 }}
-                    horizontal
-                />
-            </View>
-            <View>
-                <Text>Filter Status</Text>
-                <FlatList
-                    data={statusTypes}
-                    renderItem={({ item }) => (
-                        <TouchableOpacity
-                            style={styles.tab(setActiveStatusType, item)}
-                            onPress={() => {
-                                setActiveStatusType(item);
-                                updateDisplayNameStatus(item);
-                            }}
-                        >
-                            <Text style={styles.tabText(activeStatusType, item)}>{item}</Text>
-                        </TouchableOpacity>
-                    )}
-                    keyExtractor={item => item}
-                    contentContainerStyle={{ columnGap: 12 }}
-                    horizontal
-                />
-            </View>
-            <View style={styles.rowEntry}>
-                <View style={{ width: "40%", alignItems: 'center' }}>
-                    <Text style={styles.textEntry}>Name</Text>
-                </View>
-                <View style={{ width: "10%", alignItems: 'center' }}>
-                    <Text style={styles.textEntry}>ID</Text>
-                </View>
-                <View style={{ width: "10%", alignItems: 'center' }}>
-                    <Text style={styles.textEntry}>Table</Text>
-                </View>
-                <View style={{ width: "20%", alignItems: 'center' }}>
-                    <Text style={styles.textEntry}></Text>
-                </View>
-            </View>
-            <ScrollView style={{ height: "83%", marginTop: 10 }}>
-                {showNames()}
-            </ScrollView>
             <StatusBar style='auto' />
             <Modal animationType="slide" transparent={true} visible={modalVisible} >
                 <View style={styles.centeredView}>
@@ -299,7 +160,7 @@ export default function App() {
                             onPress={() => { setModalVisible(!modalVisible); setScanned(false) }}>
                             <Text style={styles.textStyle}>Hide Modal</Text>
                         </TouchableHighlight>
-                        <Button title='Sign In' onPress={() => { switchStatuss(modalId, modalStatus); setScanned(false) }} />
+                        <Button title='Sign In' onPress={() => {switchStatuss(modalId, modalStatus); setScanned(false) }} />
                     </View>
                 </View>
             </Modal>
@@ -381,14 +242,5 @@ const styles = StyleSheet.create({
         overflow: 'hidden',
         borderRadius: 30,
     },
-    tab: (activeJobType, item) => ({
-        paddingVertical: 12 / 2,
-        paddingHorizontal: 12,
-        borderRadius: 14,
-        borderWidth: 1,
-        borderColor: activeJobType === item ? 'green' : "gray",
-    }),
-    tabText: (activeJobType, item) => ({
-        color: activeJobType === item ? 'green' : 'gray',
-    }),
+
 });
