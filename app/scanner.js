@@ -12,9 +12,6 @@ export default function App() {
     const [names, setNames] = useState([]);
     const [scanned, setScanned] = useState(false);
     const [hasPermission, setHasPermission] = useState(null);
-    const [currentNameTest, setCurrentNameTest] = useState(undefined);
-    const [activeJobType, setActiveJobType] = useState('None')
-    const [activeStatusType, setActiveStatusType] = useState('None')
 
     const [modalVisible, setModalVisible] = useState(false);
     const [modalData, setModalData] = useState([]);
@@ -51,7 +48,6 @@ export default function App() {
     // What happens when we scan the bar code
     const handleBarCodeScanned = ({ type, data }) => {
         setScanned(true);
-        setCurrentNameTest(data);
         findName(data);
     };
 
@@ -85,7 +81,6 @@ export default function App() {
                 existingNames = i;
         }
         openSettingsModal(names[existingNames].name, names[existingNames].tables, names[existingNames].sign, names[existingNames].id);
-        setCurrentNameTest(undefined);
     };
 
     const switchStatuss = (id, status) => {
@@ -97,7 +92,6 @@ export default function App() {
                         const indexToUpdate = existingNames.findIndex(name => name.id === id);
                         existingNames[indexToUpdate].sign = status === 1 ? 0 : 1;
                         setNames(existingNames);
-                        setCurrentNameTest(undefined);
                         setModalVisible(!modalVisible)
                     }
                 },
@@ -112,30 +106,6 @@ export default function App() {
         setModalStatus(status);
         setModalId(id);
         setModalVisible(!modalVisible);
-    }
-
-    const showNames = () => {
-            return names.map((name, index) => {
-                return (
-                    <View style={styles.row(name.sign)}>
-                        <View style={{ width: "40%", alignItems: 'center' }}>
-                            <Text style={styles.textEntry}>{name.name}</Text>
-                        </View>
-                        <View style={{ width: "10%", alignItems: 'center' }}>
-                            <Text>{name.id}</Text>
-                        </View>
-                        <View style={{ width: "10%", alignItems: 'center' }}>
-                            <Text>{name.tables}</Text>
-                        </View>
-                        {/* <Button title='Delete' onPress={() => deleteName(name.id)} /> */}
-                        <View style={{ width: "20%", alignItems: 'center' }}>
-                            <View style={styles.button}>
-                                <Button style={styles.button} title='Info' onPress={() => { openSettingsModal(name.name, name.tables, name.sign, name.id); }} />
-                            </View>
-                        </View>
-                    </View>
-                )
-            })        
     }
 
     return (
@@ -153,7 +123,7 @@ export default function App() {
                     <View style={styles.modalView}>
                         <Text>{modalTitle}</Text>
                         <Text>Table: {modalData}</Text>
-                        <Text>Status: {modalStatus} </Text>
+                        <Text>Status: {modalStatus == 1 ? "Here" : "Not Here"} </Text>
                         <Text>ID: {modalId} </Text>
                         <TouchableHighlight
                             style={[styles.button, styles.buttonClose]}
@@ -167,80 +137,3 @@ export default function App() {
         </View>
     );
 }
-
-const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        height: 'auto',
-        backgroundColor: '#fff',
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    row: (sign) => ({
-        flexDirection: 'row',
-        alignItems: 'center',
-        alignSelf: 'stretch',
-        justifyContent: 'space-between',
-        backgroundColor: sign === 1 ? "#beffbd" : "#ffbdbd"
-    }),
-    rowEntry: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        alignSelf: 'stretch',
-        justifyContent: 'space-between',
-    },
-    centeredView: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginTop: 22,
-    },
-    modalView: {
-        margin: 20,
-        backgroundColor: 'white',
-        borderRadius: 20,
-        padding: 35,
-        alignItems: 'center',
-        shadowColor: '#000',
-        shadowOffset: {
-            width: 0,
-            height: 2,
-        },
-        shadowOpacity: 0.25,
-        shadowRadius: 4,
-        elevation: 5,
-    },
-    textStyle: {
-        color: 'white',
-        fontWeight: 'bold',
-        textAlign: 'center',
-    },
-    textEntry: {
-        fontSize: 15
-    },
-    textEntryModal: {
-        fontSize: 20,
-        textDecorationLine: 'underline'
-    },
-    buttonClose: {
-        backgroundColor: '#2196F3',
-    },
-    button: {
-        borderRadius: 10,
-        margin: 5,
-        padding: 5,
-        elevation: 2,
-    },
-    containerText: {
-        width: "100&",
-    },
-    barcodebox: {
-        alignItems: 'center',
-        justifyContent: 'center',
-        height: 300,
-        width: 'auto',
-        overflow: 'hidden',
-        borderRadius: 30,
-    },
-
-});
