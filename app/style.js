@@ -7,13 +7,17 @@ const styles = StyleSheet.create({
         backgroundColor: '#fff',
         alignItems: 'center',
         justifyContent: 'center',
+        width: "100%"
     },
     row: (sign) => ({
         flexDirection: 'row',
         alignItems: 'center',
         alignSelf: 'stretch',
         justifyContent: 'space-between',
-        backgroundColor: sign === 1 ? "#beffbd" : "#ffbdbd"
+        backgroundColor: sign === 1 ? "#beffbd" : "#ffbdbd",
+        borderBottomWidth: 1,
+        borderBottomColor: '#d1d1d1',
+        height: 50
     }),
     rowEntry: {
         flexDirection: 'row',
@@ -48,7 +52,26 @@ const styles = StyleSheet.create({
         textAlign: 'center',
     },
     textEntry: {
-        fontSize: 15
+        fontSize: 15,
+        fontWeight: 'bold'
+    },
+    textEntry15: {
+        fontSize: 15,
+        fontWeight: 'bold',
+        width: '15%',
+        textAlign: "center"
+    },
+    textEntry30: {
+        fontSize: 15,
+        fontWeight: 'bold',
+        width: '30%',
+        textAlign: "center"
+    },
+    textEntry55: {
+        fontSize: 15,
+        fontWeight: 'bold',
+        width: '55%',
+        textAlign: "center"
     },
     textEntryModal: {
         fontSize: 20,
@@ -58,13 +81,13 @@ const styles = StyleSheet.create({
         backgroundColor: '#2196F3',
     },
     button: {
-        borderRadius: 10,
+        borderRadius: 8,
         margin: 5,
         padding: 5,
         elevation: 2,
     },
     containerText: {
-        width: "100&",
+        width: "100%",
     },
     barcodebox: {
         alignItems: 'center',
@@ -84,6 +107,22 @@ const styles = StyleSheet.create({
     tabText: (activeJobType, item) => ({
         color: activeJobType === item ? 'green' : 'gray',
     }),
+    title: {
+        fontSize: 20,
+        textDecorationLine: 'underline'
+    },
+    scroll: {
+        paddingVertical: 10,
+    },
+    rowEntryHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        alignSelf: 'stretch',
+        justifyContent: 'space-between',
+        borderTopColor: '#d1d1d1',
+        borderTopWidth: 1,
+        paddingTop: 5
+    },
 
 });
 

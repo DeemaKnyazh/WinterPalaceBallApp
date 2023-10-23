@@ -3,6 +3,7 @@ import { StyleSheet, Text, View, TextInput, Button, Modal, TouchableHighlight, S
 import * as SQLite from 'expo-sqlite';
 import { useState, useEffect } from 'react';
 import { BarCodeScanner } from 'expo-barcode-scanner';
+import styles from './style';
 import { Stack, useRouter } from "expo-router";
 
 export default function App() {
@@ -109,11 +110,11 @@ export default function App() {
     }
 
     return (
-        <View style={styles.containerText}>
+        <View style={{width: "100%"}}>
             <View style={styles.barcodebox}>
                 <BarCodeScanner
                     onBarCodeScanned={scanned ? undefined : handleBarCodeScanned}
-                    style={{ height: 400, width: 400 }} />
+                    style={{ height: 750, width: "100%" }} />
             </View>
             {/* <Text style={styles.maintext}>{text}</Text> */}
             {/* {scanned && <Button title={'Scan again?'} onPress={() => setScanned(false)} color='tomato' />} */}

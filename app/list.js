@@ -1,7 +1,8 @@
+import './wdyr';
 import { StatusBar } from 'expo-status-bar';
-import {Text, View, TextInput, Button, Modal, TouchableHighlight, ScrollView, FlatList, TouchableOpacity } from 'react-native';
+import { Text, View, TextInput, Button, Modal, TouchableHighlight, ScrollView, FlatList, TouchableOpacity, SafeAreaView } from 'react-native';
 import * as SQLite from 'expo-sqlite';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, memo, useMemo} from 'react';
 import styles from './style';
 import { Stack, useRouter } from "expo-router";
 
@@ -101,7 +102,7 @@ export default function App() {
                         const indexToUpdate = existingNames.findIndex(name => name.id === id);
                         existingNames[indexToUpdate].sign = status === 1 ? 0 : 1;
                         setNames(existingNames);
-                        updateDisplayNameStatus(status === 0 ? 0 : 1)
+                        updateDisplayName(activeJobType, activeStatusType);
                         setCurrentNameTest(undefined);
                         setModalVisible(!modalVisible)
                     }
@@ -139,28 +140,47 @@ export default function App() {
         }
     }
 
+    const Item = memo(({item, status}) => (
+            <View key={item.id} style={styles.row(status)}>
+                {/* <View style={{ width: "55%", alignItems: 'center' }}> */}
+                    <Text style={styles.textEntry55}>{item.name}</Text>
+                {/* </View> */}
+                {/* <View style={{ width: "30%", alignItems: 'center' }}> */}
+                    <Text style={styles.textEntry30}>{item.id}</Text>
+                {/* </View> */}
+                {/* <View style={{ width: "15%", alignItems: 'center' }}> */}
+                    <Text style={styles.textEntry15}>{item.tables}</Text>
+                {/* </View> */}
+                {/* 45,15,15,25 */}
+                {/* <Button title='Delete' onPress={() => deleteName(name.id)} /> */}
+                {/* <View style={{ width: "25%", alignItems: 'center' }}>
+                    <View style={styles.button}>
+                        <Button style={styles.button} title='Info' onPress={() => {openSettingsModal(item.name, item.tables, status, item.id)}}/>
+                    </View>
+                </View> */}
+            </View>
+      ));
+
+    const renderItems = useCallback(({item}) => <Item item={item} status={item.sign}/>, []);
+    const keyExtractor = useCallback((item) => item.id, [])
+
     const showNames = () => {
-        return displayNames.map((name, index) => {
-            return (
-                <View style={styles.row(name.sign)}>
-                    <View style={{ width: "40%", alignItems: 'center' }}>
-                        <Text style={styles.textEntry}>{name.name}</Text>
-                    </View>
-                    <View style={{ width: "10%", alignItems: 'center' }}>
-                        <Text>{name.id}</Text>
-                    </View>
-                    <View style={{ width: "10%", alignItems: 'center' }}>
-                        <Text>{name.tables}</Text>
-                    </View>
-                    {/* <Button title='Delete' onPress={() => deleteName(name.id)} /> */}
-                    <View style={{ width: "20%", alignItems: 'center' }}>
-                        <View style={styles.button}>
-                            <Button style={styles.button} title='Info' onPress={() => { openSettingsModal(name.name, name.tables, name.sign, name.id); }} />
-                        </View>
-                    </View>
-                </View>
-            )
-        })
+        return (
+            <SafeAreaView style={styles.container}>
+                <FlatList
+                    data={displayNames}
+                    renderItem={renderItems}
+                    keyExtractor={keyExtractor}
+                    initialNumToRender={20}
+                    maxToRenderPerBatch={20}
+                    updateCellsBatchingPeriod={5}
+                    windowSize={6}
+                    getItemLayout={(data, index) => (
+                        {length: 50, offset: 50 * index, index}
+                      )}
+                />
+            </SafeAreaView>
+        );
     }
 
     return (
@@ -173,9 +193,10 @@ export default function App() {
                 <Button title='Show Name' onPress={() => findName(currentNameTest)} />
             </View>
             <View>
-                <Text>Filter Table</Text>
+                <Text style={styles.title}>Filter Table</Text>
                 <FlatList
                     data={jobTypes}
+                    style={styles.scroll}
                     renderItem={({ item }) => (
                         <TouchableOpacity
                             style={styles.tab(activeJobType, item)}
@@ -193,9 +214,10 @@ export default function App() {
                 />
             </View>
             <View>
-                <Text>Filter Status</Text>
+                <Text style={styles.title}>Filter Status</Text>
                 <FlatList
                     data={statusTypes}
+                    style={styles.scroll}
                     renderItem={({ item }) => (
                         <TouchableOpacity
                             style={styles.tab(setActiveStatusType, item)}
@@ -212,25 +234,29 @@ export default function App() {
                     horizontal
                 />
             </View>
-            <View style={styles.rowEntry}>
-                <View style={{ width: "40%", alignItems: 'center' }}>
+            <View>
+                <Text>People Here: {displayNames.filter(name => name.sign === 1).length}/{displayNames.length}</Text>
+            </View>
+            <View style={styles.rowEntryHeader}>
+                <View style={{ width: "55%", alignItems: 'center' }}>
                     <Text style={styles.textEntry}>Name</Text>
                 </View>
-                <View style={{ width: "10%", alignItems: 'center' }}>
+                <View style={{ width: "30%", alignItems: 'center' }}>
                     <Text style={styles.textEntry}>ID</Text>
                 </View>
-                <View style={{ width: "10%", alignItems: 'center' }}>
+                <View style={{ width: "15%", alignItems: 'center' }}>
                     <Text style={styles.textEntry}>Table</Text>
                 </View>
-                <View style={{ width: "20%", alignItems: 'center' }}>
+                {/* 45,15,15,25 */}
+                {/* <View style={{ width: "25%", alignItems: 'center' }}>
                     <Text style={styles.textEntry}></Text>
-                </View>
+                </View> */}
             </View>
-            <ScrollView style={{ height: "83%", marginTop: 10 }}>
+            <View style={{ height: "83%", marginTop: 10 }}>
                 {showNames()}
-            </ScrollView>
+            </View>
             <StatusBar style='auto' />
-            <Modal animationType="slide" transparent={true} visible={modalVisible} >
+            <Modal animationType="slide" transparent={true} visible={modalVisible} useNativeDriver={true}>
                 <View style={styles.centeredView}>
                     <View style={styles.modalView}>
                         <Text>{modalTitle}</Text>
@@ -239,10 +265,10 @@ export default function App() {
                         <Text>ID: {modalId} </Text>
                         <TouchableHighlight
                             style={[styles.button, styles.buttonClose]}
-                            onPress={() => { setModalVisible(!modalVisible) }}>
+                            onPress={() => {setModalVisible(!modalVisible) }}>
                             <Text style={styles.textStyle}>Hide Modal</Text>
                         </TouchableHighlight>
-                        <Button title='Sign In' onPress={() => { switchStatuss(modalId, modalStatus) }} />
+                        <Button title='Sign In' onPress={() => {switchStatuss(modalId, modalStatus) }} />
                     </View>
                 </View>
             </Modal>

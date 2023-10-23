@@ -5,14 +5,14 @@ import { Stack } from "expo-router";
 
 export const unstable_settings = {
   // Ensure any route can link back to `/`
-  initialRouteName: "home",
+  initialRouteName: "index",
 };
 
 const Layout = () => {
 
   return (
-    <Stack initialRouteName="home">
-      <Stack.Screen name="home" />
+    <Stack initialRouteName="index">
+      <Stack.Screen name="index" />
     </Stack>
   )
 };
