@@ -1,12 +1,11 @@
-import './wdyr';
 import { StatusBar } from 'expo-status-bar';
 import { Text, View, TextInput, Button, Modal, TouchableHighlight, ScrollView, FlatList, TouchableOpacity, SafeAreaView } from 'react-native';
 import * as SQLite from 'expo-sqlite';
-import { useState, useEffect, useCallback, memo, useMemo} from 'react';
+import { useState, useEffect, useCallback, memo, useMemo } from 'react';
 import styles from './style';
 import { Stack, useRouter } from "expo-router";
 
-export default function App() {
+export default function List() {
     const navigation = useRouter();
 
     const db = SQLite.openDatabase('WPB.db');
@@ -20,24 +19,21 @@ export default function App() {
     const [activeStatusType, setActiveStatusType] = useState('None')
 
     const [modalVisible, setModalVisible] = useState(false);
-    const [modalData, setModalData] = useState([]);
-    const [modalTitle, setModalTitle] = useState('');
-    const [modalStatus, setModalStatus] = useState('');
-    const [modalId, setModalId] = useState('');
+    const [modalPerson, setModalPerson] = useState([]);
 
     useEffect(() => {
         db.transaction(tx => {
             //tx.executeSql('DELETE TABLE names')
-            tx.executeSql('CREATE TABLE IF NOT EXISTS names (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, tables INTEGER, sign INTEGER DEFAULT 0)')
+            tx.executeSql('CREATE TABLE IF NOT EXISTS names (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, tables INTEGER, sign INTEGER DEFAULT 0, ticket TEXT)')
         });
 
         db.transaction(tx => {
-            tx.executeSql('SELECT * FROM names', null,
+            tx.executeSql('SELECT * FROM names ORDER BY name', null,
                 (txObj, resultSet) => setNames(resultSet.rows._array),
                 (txObj, error) => console.log(error))
         });
         db.transaction(tx => {
-            tx.executeSql('SELECT * FROM names', null,
+            tx.executeSql('SELECT * FROM names ORDER BY name', null,
                 (txObj, resultSet) => setDisplayNames(resultSet.rows._array),
                 (txObj, error) => console.log(error))
         });
@@ -56,11 +52,15 @@ export default function App() {
     }
 
     const addName = () => {
+        let text1 = "WPB"
+        let acronym = currentName.split(/\s/).reduce((response,word)=> response+=word.slice(0,1),'')
+        let endcronym = currentName.split(/\s/).reduce((response,word)=> response+=word.slice(-2,-1),'')
+        const CurrentTicket = text1.concat(acronym, endcronym);
         db.transaction(tx => {
-            tx.executeSql('INSERT INTO names (name, sign, tables) values (?, 0, ?)', [currentName, currentTable],
+            tx.executeSql('INSERT INTO names (name, sign, tables, ticket) values (?, 0, ?, ?)', [currentName, currentTable, CurrentTicket],
                 (txObj, resultSet) => {
                     let existingNames = [...names];
-                    existingNames.push({ id: resultSet.insertId, name: currentName, sign: 0, tables: currentTable });
+                    existingNames.push({ id: resultSet.insertId, name: currentName, sign: 0, tables: currentTable, ticket: CurrentTicket});
                     setNames(existingNames);
                     setCurrentName(undefined)
                 },
@@ -112,11 +112,8 @@ export default function App() {
         });
     }
 
-    const openSettingsModal = (title, settings, status, id) => {
-        setModalTitle(title);
-        setModalData(settings);
-        setModalStatus(status);
-        setModalId(id);
+    const openSettingsModal = (title) => {
+        setModalPerson(title);
         setModalVisible(!modalVisible);
     }
 
@@ -140,28 +137,22 @@ export default function App() {
         }
     }
 
-    const Item = memo(({item, status}) => (
-            <View key={item.id} style={styles.row(status)}>
-                {/* <View style={{ width: "55%", alignItems: 'center' }}> */}
-                    <Text style={styles.textEntry55}>{item.name}</Text>
-                {/* </View> */}
-                {/* <View style={{ width: "30%", alignItems: 'center' }}> */}
-                    <Text style={styles.textEntry30}>{item.id}</Text>
-                {/* </View> */}
-                {/* <View style={{ width: "15%", alignItems: 'center' }}> */}
-                    <Text style={styles.textEntry15}>{item.tables}</Text>
-                {/* </View> */}
-                {/* 45,15,15,25 */}
-                {/* <Button title='Delete' onPress={() => deleteName(name.id)} /> */}
-                {/* <View style={{ width: "25%", alignItems: 'center' }}>
+    const Item = memo(({ item, status }) => (
+        <View key={item.id} style={styles.row(status)}>
+            <Text style={styles.textEntry60}>{item.name}</Text>
+            {/* <Text style={styles.textEntry15}>{item.id}</Text> */}
+            <Text style={styles.textEntry20}>{item.tables}</Text>
+            {/* 45,15,15,25 */}
+            {/* <Button title='Delete' onPress={() => deleteName(name.id)} /> */}
+            <View style={{ width: "25%", alignItems: 'center' }}>
                     <View style={styles.button}>
-                        <Button style={styles.button} title='Info' onPress={() => {openSettingsModal(item.name, item.tables, status, item.id)}}/>
+                        <Button style={styles.button} title='Info' onPress={() => {openSettingsModal(item)}}/>
                     </View>
-                </View> */}
-            </View>
-      ));
+                </View>
+        </View>
+    ));
 
-    const renderItems = useCallback(({item}) => <Item item={item} status={item.sign}/>, []);
+    const renderItems = useCallback(({ item }) => <Item item={item} status={item.sign} />, []);
     const keyExtractor = useCallback((item) => item.id, [])
 
     const showNames = () => {
@@ -171,13 +162,13 @@ export default function App() {
                     data={displayNames}
                     renderItem={renderItems}
                     keyExtractor={keyExtractor}
-                    initialNumToRender={20}
-                    maxToRenderPerBatch={20}
+                    initialNumToRender={15}
+                    maxToRenderPerBatch={15}
                     updateCellsBatchingPeriod={5}
-                    windowSize={6}
+                    windowSize={5}
                     getItemLayout={(data, index) => (
-                        {length: 50, offset: 50 * index, index}
-                      )}
+                        { length: 50, offset: 50 * index, index }
+                    )}
                 />
             </SafeAreaView>
         );
@@ -185,90 +176,67 @@ export default function App() {
 
     return (
         <View style={styles.containerText}>
-            <View>
+            {/* <View>
                 <TextInput value={currentName} placeholder='name' onChangeText={setCurrentName} />
                 <TextInput value={currentTable} placeholder='table' onChangeText={setCurrentTable} />
                 <Button title='Add Name' onPress={addName} />
                 <TextInput value={currentNameTest} placeholder='key' onChangeText={setCurrentNameTest} />
                 <Button title='Show Name' onPress={() => findName(currentNameTest)} />
-            </View>
+            </View> */}
             <View>
                 <Text style={styles.title}>Filter Table</Text>
-                <FlatList
-                    data={jobTypes}
-                    style={styles.scroll}
-                    renderItem={({ item }) => (
-                        <TouchableOpacity
-                            style={styles.tab(activeJobType, item)}
-                            onPress={() => {
+                <FlatList data={jobTypes} style={styles.scroll} renderItem={({ item }) => (
+                        <TouchableOpacity style={styles.tab(activeJobType, item)} onPress={() => {
                                 setActiveJobType(item);
                                 updateDisplayName(item, activeStatusType);
-                            }}
-                        >
-                            <Text style={styles.tabText(activeJobType, item)}>{item}</Text>
+                            }}>
+                        <Text style={styles.tabText(activeJobType, item)}>{item}</Text>
                         </TouchableOpacity>
                     )}
-                    keyExtractor={item => item}
-                    contentContainerStyle={{ columnGap: 12 }}
-                    horizontal
-                />
+                    keyExtractor={item => item} contentContainerStyle={{ columnGap: 12 }} horizontal/>
             </View>
             <View>
                 <Text style={styles.title}>Filter Status</Text>
-                <FlatList
-                    data={statusTypes}
-                    style={styles.scroll}
-                    renderItem={({ item }) => (
-                        <TouchableOpacity
-                            style={styles.tab(setActiveStatusType, item)}
-                            onPress={() => {
+                <FlatList data={statusTypes} style={styles.scroll} renderItem={({ item }) => (
+                        <TouchableOpacity style={styles.tab(setActiveStatusType, item)} onPress={() => {
                                 setActiveStatusType(item);
                                 updateDisplayName(activeJobType, item);
-                            }}
-                        >
-                            <Text style={styles.tabText(activeStatusType, item)}>{item}</Text>
+                            }}>
+                        <Text style={styles.tabText(activeStatusType, item)}>{item}</Text>
                         </TouchableOpacity>
                     )}
-                    keyExtractor={item => item}
-                    contentContainerStyle={{ columnGap: 12 }}
-                    horizontal
-                />
+                    keyExtractor={item => item} contentContainerStyle={{ columnGap: 12 }} horizontal/>
             </View>
             <View>
                 <Text>People Here: {displayNames.filter(name => name.sign === 1).length}/{displayNames.length}</Text>
             </View>
             <View style={styles.rowEntryHeader}>
-                <View style={{ width: "55%", alignItems: 'center' }}>
-                    <Text style={styles.textEntry}>Name</Text>
-                </View>
-                <View style={{ width: "30%", alignItems: 'center' }}>
-                    <Text style={styles.textEntry}>ID</Text>
-                </View>
-                <View style={{ width: "15%", alignItems: 'center' }}>
-                    <Text style={styles.textEntry}>Table</Text>
-                </View>
+                    <Text style={styles.textEntry60}>Name</Text>
+                    {/* <Text style={styles.textEntry15}>ID</Text> */}
+                    <Text style={styles.textEntry20}>Table</Text>
                 {/* 45,15,15,25 */}
-                {/* <View style={{ width: "25%", alignItems: 'center' }}>
+                <View style={{ width: "25%", alignItems: 'center' }}>
                     <Text style={styles.textEntry}></Text>
-                </View> */}
+                </View>
             </View>
-            <View style={{ height: "83%", marginTop: 10 }}>
+            <View style={{ height: "71.5%", marginTop: 10 }}>
                 {showNames()}
             </View>
             <StatusBar style='auto' />
-            <Modal animationType="slide" transparent={true} visible={modalVisible} useNativeDriver={true}>
+            <Modal animationType="fade" transparent={true} visible={modalVisible} useNativeDriver={true} hardwareAccelerated={true} >
                 <View style={styles.centeredView}>
                     <View style={styles.modalView}>
-                        <Text>{modalTitle}</Text>
-                        <Text>Table: {modalData}</Text>
-                        <Text>Status: {modalStatus == 1 ? "Here" : "Not Here"} </Text>
-                        <Text>ID: {modalId} </Text>
+                        <Text style={styles.modalName}>{modalPerson.name}</Text>
+                        <Text style={styles.modalText}>Table: {modalPerson.tables}</Text>
+                        <Text style={styles.modalText}>Status: {modalPerson.sign == 1 ? "Here" : "Not Here"} </Text>
+                        <Text style={styles.modalText}>ID: {modalPerson.ticket} </Text>
+                        <Button title={modalPerson.sign == 1 ? "Sign Out" : "Sign In"} onPress={() => {switchStatuss(modalPerson.id, modalPerson.sign)}} />
+                        {/* <Button title="Delete" onPress={() => {deleteName(modalPerson.id)}} /> */}
                         <TouchableHighlight
                             style={[styles.button, styles.buttonClose]}
                             onPress={() => {setModalVisible(!modalVisible) }}>
-                            <Text style={styles.textStyle}>Hide Modal</Text>
+                            <Text style={styles.textStyle}>Close</Text>
                         </TouchableHighlight>
-                        <Button title='Sign In' onPress={() => {switchStatuss(modalId, modalStatus) }} />
                     </View>
                 </View>
             </Modal>

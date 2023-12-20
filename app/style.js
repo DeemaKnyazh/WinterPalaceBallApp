@@ -17,7 +17,7 @@ const styles = StyleSheet.create({
         backgroundColor: sign === 1 ? "#beffbd" : "#ffbdbd",
         borderBottomWidth: 1,
         borderBottomColor: '#d1d1d1',
-        height: 50
+        height: 60
     }),
     rowEntry: {
         flexDirection: 'row',
@@ -32,7 +32,7 @@ const styles = StyleSheet.create({
         marginTop: 22,
     },
     modalView: {
-        margin: 20,
+        margin: 25,
         backgroundColor: 'white',
         borderRadius: 20,
         padding: 35,
@@ -55,23 +55,47 @@ const styles = StyleSheet.create({
         fontSize: 15,
         fontWeight: 'bold'
     },
+    textEntry10: {
+        fontSize: 15,
+        fontWeight: 'bold',
+        width: '10%',
+        textAlign: "center"
+    },
     textEntry15: {
         fontSize: 15,
         fontWeight: 'bold',
         width: '15%',
         textAlign: "center"
     },
-    textEntry30: {
+    textEntry20: {
         fontSize: 15,
         fontWeight: 'bold',
-        width: '30%',
+        width: '20%',
         textAlign: "center"
     },
-    textEntry55: {
+    textEntry40: {
+        fontSize: 15,
+        fontWeight: 'bold',
+        width: '40%',
+        textAlign: 'left',
+        marginLeft: 5
+    },
+    textEntry60: {
         fontSize: 15,
         fontWeight: 'bold',
         width: '55%',
-        textAlign: "center"
+        textAlign: 'left',
+        marginLeft: 5
+    },
+    modalName: {
+        fontSize: 25,
+        fontWeight: 'bold',
+        textDecorationLine: 'underline',
+        paddingBottom: 5
+    },
+    modalText: {
+        fontSize: 20,
+        paddingVertical: 5
     },
     textEntryModal: {
         fontSize: 20,
@@ -79,6 +103,7 @@ const styles = StyleSheet.create({
     },
     buttonClose: {
         backgroundColor: '#2196F3',
+        marginTop: 20
     },
     button: {
         borderRadius: 8,
@@ -94,6 +119,7 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         height: 300,
         width: 'auto',
+        marginTop: '30%',
         overflow: 'hidden',
         borderRadius: 30,
     },
