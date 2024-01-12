@@ -117,11 +117,9 @@ const styles = StyleSheet.create({
     barcodebox: {
         alignItems: 'center',
         justifyContent: 'center',
-        height: 300,
+        height: '60%',
         width: 'auto',
-        marginTop: '30%',
-        overflow: 'hidden',
-        borderRadius: 30,
+        overflow: 'hidden'
     },
     tab: (activeJobType, item) => ({
         paddingVertical: 12 / 2,

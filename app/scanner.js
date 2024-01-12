@@ -26,7 +26,7 @@ export default function Scanner() {
         });
 
         db.transaction(tx => {
-            tx.executeSql('SELECT * FROM names', null,
+            tx.executeSql('SELECT * FROM names ORDER BY name', null,
                 (txObj, resultSet) => setNames(resultSet.rows._array),
                 (txObj, error) => console.log(error))
         });
@@ -135,6 +135,13 @@ export default function Scanner() {
                 <BarCodeScanner
                     onBarCodeScanned={scanned ? undefined : handleBarCodeScanned}
                     style={{ height: 750, width: "100%" }} />
+            </View>
+            <View style={styles.modalView}>
+                <Text style={styles.modalName}>Last Scan</Text>
+                <Text style={styles.modalText}>{modalPerson.name}</Text>
+                <Text style={styles.modalText}>Table: {modalPerson.tables}</Text>
+                <Text style={styles.modalText}>Status: {modalPerson.sign == 1 ? "Here" : "Not Here"} </Text>
+                <Text style={styles.modalText}>ID: {modalPerson.ticket} </Text>
             </View>
             {/* <Text style={styles.maintext}>{text}</Text> */}
             {/* {scanned && <Button title={'Scan again?'} onPress={() => setScanned(false)} color='tomato' />} */}
