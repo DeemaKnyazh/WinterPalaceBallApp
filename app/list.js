@@ -4,6 +4,7 @@ import * as SQLite from 'expo-sqlite';
 import { useState, useEffect, useCallback, memo, useMemo } from 'react';
 import styles from './style';
 import { Stack, useRouter } from "expo-router";
+import {apikey, apilist, apisign} from "@env";
 
 export default function List() {
     const navigation = useRouter();
@@ -20,25 +21,51 @@ export default function List() {
 
     const [modalVisible, setModalVisible] = useState(false);
     const [modalPerson, setModalPerson] = useState([]);
+    const url = apilist
+    const url2 = apisign
 
     useEffect(() => {
-        db.transaction(tx => {
-            //tx.executeSql('DELETE TABLE names')
-            tx.executeSql('CREATE TABLE IF NOT EXISTS names (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, tables INTEGER, sign INTEGER DEFAULT 0, ticket TEXT)')
-        });
+        fetch(url, { 
+            method: 'get', 
+            headers: new Headers({
+                'Authorization': apikey, 
+            })})
+          .then((resp) => resp.json())
+          .then((json) => setDisplayNames(json))
+          .catch((error) => console.error(error))
+          .finally(() => setIsLoading(false));
 
-        db.transaction(tx => {
-            tx.executeSql('SELECT * FROM names ORDER BY name', null,
-                (txObj, resultSet) => setNames(resultSet.rows._array),
-                (txObj, error) => console.log(error))
-        });
-        db.transaction(tx => {
-            tx.executeSql('SELECT * FROM names ORDER BY name', null,
-                (txObj, resultSet) => setDisplayNames(resultSet.rows._array),
-                (txObj, error) => console.log(error))
-        });
-        setIsLoading(false);
-    }, [])
+          fetch(url, { 
+            method: 'get', 
+            headers: new Headers({
+                'Authorization': 'Bearer Shtg7DCFCYtY2ew', 
+            })})
+          .then((resp) => resp.json())
+          .then((json) => setNames(json))
+          .catch((error) => console.error(error))
+          .finally(() => setIsLoading(false));
+      }, []);
+
+    // useEffect(() => {
+    //     db.transaction(tx => {
+    //         //tx.executeSql('DELETE TABLE names')
+    //         tx.executeSql('CREATE TABLE IF NOT EXISTS names (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, tables INTEGER, sign INTEGER DEFAULT 0, ticket TEXT)')
+    //     });
+
+    //     db.transaction(tx => {
+    //         tx.executeSql('SELECT * FROM names ORDER BY name', null,
+    //             (txObj, resultSet) => setNames(resultSet.rows._array),
+    //             (txObj, error) => console.log(error))
+    //     });
+    //     db.transaction(tx => {
+    //         tx.executeSql('SELECT * FROM names ORDER BY name', null,
+    //             (txObj, resultSet) => setDisplayNames(resultSet.rows._array),
+    //             (txObj, error) => console.log(error))
+    //     });
+    //     setIsLoading(false);
+    // }, [])
+
+    // console.log(names)
 
     const jobTypes = ["None", 1, 2, 3, 4, 5, 6, 7, 8, 9]
     const statusTypes = ["None", "Here", "Not Here"]
@@ -94,22 +121,41 @@ export default function List() {
     };
 
     const switchStatuss = (id, status) => {
-        db.transaction(tx => {
-            tx.executeSql('UPDATE names SET sign = ? WHERE id = ?', [status === 1 ? 0 : 1, id],
-                (txObj, resultSet) => {
-                    if (resultSet.rowsAffected > 0) {
-                        let existingNames = [...names];
-                        const indexToUpdate = existingNames.findIndex(name => name.id === id);
-                        existingNames[indexToUpdate].sign = status === 1 ? 0 : 1;
-                        setNames(existingNames);
-                        updateDisplayName(activeJobType, activeStatusType);
-                        setCurrentNameTest(undefined);
-                        setModalVisible(!modalVisible)
-                    }
-                },
-                (txObj, error) => console.log(error)
-            );
-        });
+        // db.transaction(tx => {
+        //     tx.executeSql('UPDATE names SET sign = ? WHERE id = ?', [status === 1 ? 0 : 1, id],
+        //         (txObj, resultSet) => {
+        //             if (resultSet.rowsAffected > 0) {
+        //                 let existingNames = [...names];
+        //                 const indexToUpdate = existingNames.findIndex(name => name.id === id);
+        //                 existingNames[indexToUpdate].sign = status === 1 ? 0 : 1;
+        //                 setNames(existingNames);
+        //                 updateDisplayName(activeJobType, activeStatusType);
+        //                 setCurrentNameTest(undefined);
+        //                 setModalVisible(!modalVisible)
+        //             }
+        //         },
+        //         (txObj, error) => console.log(error)
+        //     );
+        // });
+        fetch(url2+id, { 
+            method: 'post', 
+            headers: new Headers({
+                'Authorization': apikey, 
+            })})
+            .then((response) => response.json())
+            .then((responseData) => {
+              console.log(JSON.stringify(responseData));
+            })
+            .then((responseData) => {
+                let existingNames = [...names];
+                const indexToUpdate = existingNames.findIndex(name => name.id === id);
+                existingNames[indexToUpdate].sign = status === 1 ? 0 : 1;
+                setNames(existingNames);
+                updateDisplayName(activeJobType, activeStatusType);
+                setCurrentNameTest(undefined);
+                setModalVisible(!modalVisible)
+            })
+            .catch((error) => console.error(error))
     }
 
     const openSettingsModal = (title) => {
