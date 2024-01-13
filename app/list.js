@@ -38,7 +38,7 @@ export default function List() {
           fetch(url, { 
             method: 'get', 
             headers: new Headers({
-                'Authorization': 'Bearer Shtg7DCFCYtY2ew', 
+                'Authorization': apikey, 
             })})
           .then((resp) => resp.json())
           .then((json) => setNames(json))
