@@ -4,12 +4,13 @@ import * as SQLite from 'expo-sqlite';
 import { useState, useEffect, useCallback, memo, useMemo } from 'react';
 import styles from './style';
 import { Stack, useRouter } from "expo-router";
-import {apikey, apilist, apisign} from "@env";
+import { apikey, apilist, apisign } from "@env";
 
 export default function List() {
     const navigation = useRouter();
-
     const db = SQLite.openDatabase('WPB.db');
+    const [ws, setWs] = useState(new WebSocket('wss://ruskokaaccess.azurewebsites.net'));
+
     const [isLoading, setIsLoading] = useState(false);
     const [names, setNames] = useState([]);
     const [currentName, setCurrentName] = useState(undefined);
@@ -18,33 +19,61 @@ export default function List() {
     const [currentNameTest, setCurrentNameTest] = useState(undefined);
     const [activeJobType, setActiveJobType] = useState('None')
     const [activeStatusType, setActiveStatusType] = useState('None')
-
     const [modalVisible, setModalVisible] = useState(false);
     const [modalPerson, setModalPerson] = useState([]);
+    const [wsClient, setWsClient] = useState('None');
     const url = apilist
     const url2 = apisign
 
-    useEffect(() => {
-        fetch(url, { 
-            method: 'get', 
-            headers: new Headers({
-                'Authorization': apikey, 
-            })})
-          .then((resp) => resp.json())
-          .then((json) => setDisplayNames(json))
-          .catch((error) => console.error(error))
-          .finally(() => setIsLoading(false));
+    ws.onopen = () => {
+        // connection opened
+        console.log("opened");
+    };
 
-          fetch(url, { 
-            method: 'get', 
+    ws.onmessage = (e) => {
+        // a message was received
+        const msg = JSON.stringify(e.data);
+        mystring = msg.replace(/["']/g, "");
+        console.log(mystring);
+        if (mystring.startsWith("client:")) {
+            console.log(mystring.replace("client:", ""));
+            setWsClient(mystring.replace("client:", ""));
+        }
+        if (mystring.startsWith("status ")) {
+            console.log(mystring.replace("status ", ""));
+            switchStatuss(mystring.replace("status ", ""), 1, "ext")
+        }
+    };
+
+    ws.onclose = (e) => {
+    };
+    ws.onerror = (e) => {
+
+    };
+
+    useEffect(() => {
+        fetch(url, {
+            method: 'get',
             headers: new Headers({
-                'Authorization': apikey, 
-            })})
-          .then((resp) => resp.json())
-          .then((json) => setNames(json))
-          .catch((error) => console.error(error))
-          .finally(() => setIsLoading(false));
-      }, []);
+                'Authorization': apikey,
+            })
+        })
+            .then((resp) => resp.json())
+            .then((json) => setDisplayNames(json))
+            .catch((error) => console.error(error))
+            .finally(() => setIsLoading(false));
+
+        fetch(url, {
+            method: 'get',
+            headers: new Headers({
+                'Authorization': apikey,
+            })
+        })
+            .then((resp) => resp.json())
+            .then((json) => setNames(json))
+            .catch((error) => console.error(error))
+            .finally(() => setIsLoading(false));
+    }, []);
 
     // useEffect(() => {
     //     db.transaction(tx => {
@@ -80,14 +109,14 @@ export default function List() {
 
     const addName = () => {
         let text1 = "WPB"
-        let acronym = currentName.split(/\s/).reduce((response,word)=> response+=word.slice(0,1),'')
-        let endcronym = currentName.split(/\s/).reduce((response,word)=> response+=word.slice(-2,-1),'')
+        let acronym = currentName.split(/\s/).reduce((response, word) => response += word.slice(0, 1), '')
+        let endcronym = currentName.split(/\s/).reduce((response, word) => response += word.slice(-2, -1), '')
         const CurrentTicket = text1.concat(acronym, endcronym);
         db.transaction(tx => {
             tx.executeSql('INSERT INTO names (name, sign, tables, ticket) values (?, 0, ?, ?)', [currentName, currentTable, CurrentTicket],
                 (txObj, resultSet) => {
                     let existingNames = [...names];
-                    existingNames.push({ id: resultSet.insertId, name: currentName, sign: 0, tables: currentTable, ticket: CurrentTicket});
+                    existingNames.push({ id: resultSet.insertId, name: currentName, sign: 0, tables: currentTable, ticket: CurrentTicket });
                     setNames(existingNames);
                     setCurrentName(undefined)
                 },
@@ -120,7 +149,7 @@ export default function List() {
         setCurrentNameTest(undefined);
     };
 
-    const switchStatuss = (id, status) => {
+    const switchStatuss = (id, status, src) => {
         // db.transaction(tx => {
         //     tx.executeSql('UPDATE names SET sign = ? WHERE id = ?', [status === 1 ? 0 : 1, id],
         //         (txObj, resultSet) => {
@@ -137,25 +166,38 @@ export default function List() {
         //         (txObj, error) => console.log(error)
         //     );
         // });
-        fetch(url2+id, { 
-            method: 'post', 
-            headers: new Headers({
-                'Authorization': apikey, 
-            })})
-            .then((response) => response.json())
-            .then((responseData) => {
-              console.log(JSON.stringify(responseData));
+        if (src == "ext") {
+            let existingNames = [...names];
+            const indexToUpdate = existingNames.findIndex(name => name.id == id);
+            existingNames[indexToUpdate].sign = existingNames[indexToUpdate].sign === 1 ? 0 : 1;
+            setNames(existingNames);
+            updateDisplayName(activeJobType, activeStatusType);
+            setCurrentNameTest(undefined);
+        }
+        if (src == "int") {
+            fetch(url2 + id, {
+                method: 'post',
+                headers: new Headers({
+                    'Authorization': apikey,
+                    'Client': wsClient,
+                })
             })
-            .then((responseData) => {
-                let existingNames = [...names];
-                const indexToUpdate = existingNames.findIndex(name => name.id === id);
-                existingNames[indexToUpdate].sign = status === 1 ? 0 : 1;
-                setNames(existingNames);
-                updateDisplayName(activeJobType, activeStatusType);
-                setCurrentNameTest(undefined);
-                setModalVisible(!modalVisible)
-            })
-            .catch((error) => console.error(error))
+                .then((response) => response.json())
+                .then((responseData) => {
+                    console.log(JSON.stringify(responseData));
+                })
+                .then((responseData) => {
+                    let existingNames = [...names];
+                    const indexToUpdate = existingNames.findIndex(name => name.id == id);
+                    console.log(indexToUpdate, id)
+                    existingNames[indexToUpdate].sign = status === 1 ? 0 : 1;
+                    setNames(existingNames);
+                    updateDisplayName(activeJobType, activeStatusType);
+                    setCurrentNameTest(undefined);
+                    setModalVisible(!modalVisible)
+                })
+                .catch((error) => console.error(error))
+        }
     }
 
     const openSettingsModal = (title) => {
@@ -191,10 +233,10 @@ export default function List() {
             {/* 45,15,15,25 */}
             {/* <Button title='Delete' onPress={() => deleteName(name.id)} /> */}
             <View style={{ width: "25%", alignItems: 'center' }}>
-                    <View style={styles.button}>
-                        <Button style={styles.button} title='Info' onPress={() => {openSettingsModal(item)}}/>
-                    </View>
+                <View style={styles.button}>
+                    <Button style={styles.button} title='Info' onPress={() => { openSettingsModal(item) }} />
                 </View>
+            </View>
         </View>
     ));
 
@@ -232,34 +274,34 @@ export default function List() {
             <View>
                 <Text style={styles.title}>Filter Table</Text>
                 <FlatList data={jobTypes} style={styles.scroll} renderItem={({ item }) => (
-                        <TouchableOpacity style={styles.tab(activeJobType, item)} onPress={() => {
-                                setActiveJobType(item);
-                                updateDisplayName(item, activeStatusType);
-                            }}>
+                    <TouchableOpacity style={styles.tab(activeJobType, item)} onPress={() => {
+                        setActiveJobType(item);
+                        updateDisplayName(item, activeStatusType);
+                    }}>
                         <Text style={styles.tabText(activeJobType, item)}>{item}</Text>
-                        </TouchableOpacity>
-                    )}
-                    keyExtractor={item => item} contentContainerStyle={{ columnGap: 12 }} horizontal/>
+                    </TouchableOpacity>
+                )}
+                    keyExtractor={item => item} contentContainerStyle={{ columnGap: 12 }} horizontal />
             </View>
             <View>
                 <Text style={styles.title}>Filter Status</Text>
                 <FlatList data={statusTypes} style={styles.scroll} renderItem={({ item }) => (
-                        <TouchableOpacity style={styles.tab(setActiveStatusType, item)} onPress={() => {
-                                setActiveStatusType(item);
-                                updateDisplayName(activeJobType, item);
-                            }}>
+                    <TouchableOpacity style={styles.tab(setActiveStatusType, item)} onPress={() => {
+                        setActiveStatusType(item);
+                        updateDisplayName(activeJobType, item);
+                    }}>
                         <Text style={styles.tabText(activeStatusType, item)}>{item}</Text>
-                        </TouchableOpacity>
-                    )}
-                    keyExtractor={item => item} contentContainerStyle={{ columnGap: 12 }} horizontal/>
+                    </TouchableOpacity>
+                )}
+                    keyExtractor={item => item} contentContainerStyle={{ columnGap: 12 }} horizontal />
             </View>
             <View>
                 <Text>People Here: {displayNames.filter(name => name.sign === 1).length}/{displayNames.length}</Text>
             </View>
             <View style={styles.rowEntryHeader}>
-                    <Text style={styles.textEntry60}>Name</Text>
-                    {/* <Text style={styles.textEntry15}>ID</Text> */}
-                    <Text style={styles.textEntry20}>Table</Text>
+                <Text style={styles.textEntry60}>Name</Text>
+                {/* <Text style={styles.textEntry15}>ID</Text> */}
+                <Text style={styles.textEntry20}>Table</Text>
                 {/* 45,15,15,25 */}
                 <View style={{ width: "25%", alignItems: 'center' }}>
                     <Text style={styles.textEntry}></Text>
@@ -276,11 +318,11 @@ export default function List() {
                         <Text style={styles.modalText}>Table: {modalPerson.tables}</Text>
                         <Text style={styles.modalText}>Status: {modalPerson.sign == 1 ? "Here" : "Not Here"} </Text>
                         <Text style={styles.modalText}>ID: {modalPerson.ticket} </Text>
-                        <Button title={modalPerson.sign == 1 ? "Sign Out" : "Sign In"} onPress={() => {switchStatuss(modalPerson.id, modalPerson.sign)}} />
+                        <Button title={modalPerson.sign == 1 ? "Sign Out" : "Sign In"} onPress={() => { switchStatuss(modalPerson.id, modalPerson.sign, "int")}} />
                         {/* <Button title="Delete" onPress={() => {deleteName(modalPerson.id)}} /> */}
                         <TouchableHighlight
                             style={[styles.button, styles.buttonClose]}
-                            onPress={() => {setModalVisible(!modalVisible) }}>
+                            onPress={() => { setModalVisible(!modalVisible) }}>
                             <Text style={styles.textStyle}>Close</Text>
                         </TouchableHighlight>
                     </View>

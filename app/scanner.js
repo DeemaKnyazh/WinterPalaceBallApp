@@ -7,7 +7,7 @@ import styles from './style';
 import { Stack, useRouter } from "expo-router";
 import * as Haptics from 'expo-haptics';
 import Toast from 'react-native-toast-message';
-
+import { apikey, apilist, apisign } from "@env";
 
 export default function Scanner() {
     const navigation = useRouter();
@@ -18,20 +18,64 @@ export default function Scanner() {
     const [hasPermission, setHasPermission] = useState('granted');
     const [modalVisible, setModalVisible] = useState(false);
     const [modalPerson, setModalPerson] = useState([]);
+    const [ws, setWs] = useState(new WebSocket('wss://ruskokaaccess.azurewebsites.net'));
+    const [wsClient, setWsClient] = useState('None');
+    const url = apilist
+    const url2 = apisign
+
+    ws.onopen = () => {
+        // connection opened
+        console.log("opened");
+    };
+
+    ws.onmessage = (e) => {
+        // a message was received
+        const msg = JSON.stringify(e.data);
+        mystring = msg.replace(/["']/g, "");
+        console.log(mystring);
+        if (mystring.startsWith("client:")) {
+            console.log(mystring.replace("client:", ""));
+            setWsClient(mystring.replace("client:", ""));
+        }
+        if (mystring.startsWith("status ")) {
+            console.log(mystring.replace("status ", ""));
+            switchStatuss(mystring.replace("status ", ""), 1, "ext")
+        }
+    };
+
+    ws.onclose = (e) => {
+    };
+    ws.onerror = (e) => {
+
+    };
+
+    // useEffect(() => {
+    //     db.transaction(tx => {
+    //         //tx.executeSql('DELETE TABLE names')
+    //         tx.executeSql('CREATE TABLE IF NOT EXISTS names (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, tables INTEGER, sign INTEGER DEFAULT 0, ticket TEXT)')
+    //     });
+
+    //     db.transaction(tx => {
+    //         tx.executeSql('SELECT * FROM names ORDER BY name', null,
+    //             (txObj, resultSet) => setNames(resultSet.rows._array),
+    //             (txObj, error) => console.log(error))
+    //     });
+    //     setIsLoading(false);
+    // }, [])
 
     useEffect(() => {
-        db.transaction(tx => {
-            //tx.executeSql('DELETE TABLE names')
-            tx.executeSql('CREATE TABLE IF NOT EXISTS names (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, tables INTEGER, sign INTEGER DEFAULT 0, ticket TEXT)')
-        });
+        fetch(url, {
+            method: 'get',
+            headers: new Headers({
+                'Authorization': apikey,
+            })
+        })
+            .then((resp) => resp.json())
+            .then((json) => setNames(json))
+            .catch((error) => console.error(error))
+            .finally(() => setIsLoading(false));
+    }, []);
 
-        db.transaction(tx => {
-            tx.executeSql('SELECT * FROM names ORDER BY name', null,
-                (txObj, resultSet) => setNames(resultSet.rows._array),
-                (txObj, error) => console.log(error))
-        });
-        setIsLoading(false);
-    }, [])
 
     const jobTypes = ["None", 1, 2, 3, 4, 5, 6, 7, 8, 9]
     const statusTypes = ["None", "Here", "Not Here"]
@@ -56,6 +100,16 @@ export default function Scanner() {
         Toast.show({
             type: 'error',
             text1: name + ' already signed in!',
+            position: 'top',
+            visibilityTime: 5000,
+            onHide: setScanned(false)
+        });
+    }
+
+    const showUndeToast = (code) => {
+        Toast.show({
+            type: 'info',
+            text1: code + ' doesnt exist',
             position: 'top',
             visibilityTime: 5000,
             onHide: setScanned(false)
@@ -93,35 +147,68 @@ export default function Scanner() {
     }
 
     const findName = (test) => {
-        let existingNames
-        for (i = 0; i < names.length; i++) {
-            if (names[i].ticket == test)
-                existingNames = i;
+        let existingNames = [...names];
+        let indexToUpdate;
+        for (i = 0; i < existingNames.length; i++) {
+            if (existingNames[i].ticket == test)
+                indexToUpdate = i;
         }
-        if(names[existingNames].sign == 1){
-            showUsedToast(names[existingNames].name)
+        if(indexToUpdate == undefined){
+            showUndeToast(test)
+        }
+        else if(existingNames[indexToUpdate].sign == 1){
+            showUsedToast(existingNames[indexToUpdate].name)
         }
         else{
-            openSettingsModal(names[existingNames]);
+            openSettingsModal(existingNames[indexToUpdate]);
         }
     };
 
-    const switchStatuss = (id, status) => {
-        db.transaction(tx => {
-            tx.executeSql('UPDATE names SET sign = ? WHERE id = ?', [status === 1 ? 0 : 1, id],
-                (txObj, resultSet) => {
-                    if (resultSet.rowsAffected > 0) {
-                        let existingNames = [...names];
-                        const indexToUpdate = existingNames.findIndex(name => name.id === id);
-                        existingNames[indexToUpdate].sign = status === 1 ? 0 : 1;
-                        setNames(existingNames);
-                        setModalVisible(!modalVisible)
-                        showSuccessInToast(existingNames[indexToUpdate].name);
-                    }
-                },
-                (txObj, error) => console.log(error)
-            );
-        });
+    const switchStatuss = (id, status, src) => {
+        // db.transaction(tx => {
+        //     tx.executeSql('UPDATE names SET sign = ? WHERE id = ?', [status === 1 ? 0 : 1, id],
+        //         (txObj, resultSet) => {
+        //             if (resultSet.rowsAffected > 0) {
+        //                 let existingNames = [...names];
+        //                 const indexToUpdate = existingNames.findIndex(name => name.id === id);
+        //                 existingNames[indexToUpdate].sign = status === 1 ? 0 : 1;
+        //                 setNames(existingNames);
+        //                 updateDisplayName(activeJobType, activeStatusType);
+        //                 setCurrentNameTest(undefined);
+        //                 setModalVisible(!modalVisible)
+        //             }
+        //         },
+        //         (txObj, error) => console.log(error)
+        //     );
+        // });
+        if (src == "ext") {
+            let existingNames = [...names];
+            const indexToUpdate = existingNames.findIndex(name => name.id == id);
+            existingNames[indexToUpdate].sign = existingNames[indexToUpdate].sign === 1 ? 0 : 1;
+            setNames(existingNames);
+        }
+        if (src == "int") {
+            fetch(url2 + id, {
+                method: 'post',
+                headers: new Headers({
+                    'Authorization': apikey,
+                    'Client': wsClient,
+                })
+            })
+                .then((response) => response.json())
+                .then((responseData) => {
+                    console.log(JSON.stringify(responseData));
+                })
+                .then((responseData) => {
+                    let existingNames = [...names];
+                    const indexToUpdate = existingNames.findIndex(name => name.id == id);
+                    console.log(indexToUpdate, id)
+                    existingNames[indexToUpdate].sign = status === 1 ? 0 : 1;
+                    setNames(existingNames);
+                    setModalVisible(!modalVisible)
+                })
+                .catch((error) => console.error(error))
+        }
     }
 
     const openSettingsModal = (title) => {
@@ -153,7 +240,7 @@ export default function Scanner() {
                         <Text style={styles.modalText}>Table: {modalPerson.tables}</Text>
                         <Text style={styles.modalText}>Status: {modalPerson.sign == 1 ? "Here" : "Not Here"} </Text>
                         <Text style={styles.modalText}>ID: {modalPerson.ticket} </Text>
-                        <Button title={modalPerson.sign == 1 ? "Sign Out" : "Sign In"} onPress={() => { switchStatuss(modalPerson.id, modalPerson.sign)}} />
+                        <Button title={modalPerson.sign == 1 ? "Sign Out" : "Sign In"} onPress={() => { switchStatuss(modalPerson.id, modalPerson.sign, "int"); setScanned(false)}} />
                         <TouchableHighlight
                             style={[styles.button, styles.buttonClose]}
                             onPress={() => { setModalVisible(!modalVisible); setScanned(false) }}>
