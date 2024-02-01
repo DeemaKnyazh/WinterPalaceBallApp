@@ -1,16 +1,17 @@
 import { StatusBar } from 'expo-status-bar';
 import { StyleSheet, Text, View, TextInput, Button, Modal, TouchableHighlight, ScrollView, FlatList, TouchableOpacity } from 'react-native';
 import * as SQLite from 'expo-sqlite';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRoute } from 'react';
 import { BarCodeScanner } from 'expo-barcode-scanner';
 import styles from './style';
 import { Stack, useRouter } from "expo-router";
 import * as Haptics from 'expo-haptics';
 import Toast from 'react-native-toast-message';
-import { apikey, apilist, apisign } from "@env";
+import { apikey, apilist, apisign, wsurl } from "@env";
 
 export default function Scanner() {
     const navigation = useRouter();
+
     const db = SQLite.openDatabase('WPB.db');
     const [isLoading, setIsLoading] = useState(false);
     const [names, setNames] = useState([]);
@@ -18,11 +19,12 @@ export default function Scanner() {
     const [hasPermission, setHasPermission] = useState('granted');
     const [modalVisible, setModalVisible] = useState(false);
     const [modalPerson, setModalPerson] = useState([]);
-    const [ws, setWs] = useState(new WebSocket('wss://ruskokaaccess.azurewebsites.net'));
-    const [wsClient, setWsClient] = useState('None');
     const url = apilist
     const url2 = apisign
 
+    const [ws, setWs] = useState(new WebSocket(wsurl));
+    //ws.close();
+    const [wsClient, setWsClient] = useState('None');
     ws.onopen = () => {
         // connection opened
         console.log("opened");
@@ -34,11 +36,9 @@ export default function Scanner() {
         mystring = msg.replace(/["']/g, "");
         console.log(mystring);
         if (mystring.startsWith("client:")) {
-            console.log(mystring.replace("client:", ""));
             setWsClient(mystring.replace("client:", ""));
         }
         if (mystring.startsWith("status ")) {
-            console.log(mystring.replace("status ", ""));
             switchStatuss(mystring.replace("status ", ""), 1, "ext")
         }
     };
@@ -153,13 +153,13 @@ export default function Scanner() {
             if (existingNames[i].ticket == test)
                 indexToUpdate = i;
         }
-        if(indexToUpdate == undefined){
+        if (indexToUpdate == undefined) {
             showUndeToast(test)
         }
-        else if(existingNames[indexToUpdate].sign == 1){
+        else if (existingNames[indexToUpdate].sign == 1) {
             showUsedToast(existingNames[indexToUpdate].name)
         }
-        else{
+        else {
             openSettingsModal(existingNames[indexToUpdate]);
         }
     };
@@ -217,7 +217,17 @@ export default function Scanner() {
     }
 
     return (
-        <View style={{ width: "100%"}}>
+        <View style={{ width: "100%" }}>
+            <Stack.Screen
+                options={{
+                    title: 'Scanner',
+                    headerStyle: { backgroundColor: '#f4511e' },
+                    headerTintColor: '#fff',
+                    headerTitleStyle: {
+                        fontWeight: 'bold',
+                    },
+                }}
+            />
             <View style={styles.barcodebox}>
                 <BarCodeScanner
                     onBarCodeScanned={scanned ? undefined : handleBarCodeScanned}
@@ -240,7 +250,7 @@ export default function Scanner() {
                         <Text style={styles.modalText}>Table: {modalPerson.tables}</Text>
                         <Text style={styles.modalText}>Status: {modalPerson.sign == 1 ? "Here" : "Not Here"} </Text>
                         <Text style={styles.modalText}>ID: {modalPerson.ticket} </Text>
-                        <Button title={modalPerson.sign == 1 ? "Sign Out" : "Sign In"} onPress={() => { switchStatuss(modalPerson.id, modalPerson.sign, "int"); setScanned(false)}} />
+                        <Button title={modalPerson.sign == 1 ? "Sign Out" : "Sign In"} onPress={() => { switchStatuss(modalPerson.id, modalPerson.sign, "int"); setScanned(false) }} />
                         <TouchableHighlight
                             style={[styles.button, styles.buttonClose]}
                             onPress={() => { setModalVisible(!modalVisible); setScanned(false) }}>

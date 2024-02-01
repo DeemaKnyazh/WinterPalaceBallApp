@@ -1,15 +1,15 @@
 import { StatusBar } from 'expo-status-bar';
 import { Text, View, TextInput, Button, Modal, TouchableHighlight, ScrollView, FlatList, TouchableOpacity, SafeAreaView } from 'react-native';
 import * as SQLite from 'expo-sqlite';
-import { useState, useEffect, useCallback, memo, useMemo } from 'react';
+import { useState, useEffect, useCallback, memo, useMemo, useRoute } from 'react';
 import styles from './style';
-import { Stack, useRouter } from "expo-router";
-import { apikey, apilist, apisign } from "@env";
+import { Stack, useRouter, useLocalSearchParams } from "expo-router";
+import { apikey, apilist, apisign, wsurl } from "@env";
 
 export default function List() {
     const navigation = useRouter();
+
     const db = SQLite.openDatabase('WPB.db');
-    const [ws, setWs] = useState(new WebSocket('wss://ruskokaaccess.azurewebsites.net'));
 
     const [isLoading, setIsLoading] = useState(false);
     const [names, setNames] = useState([]);
@@ -21,9 +21,12 @@ export default function List() {
     const [activeStatusType, setActiveStatusType] = useState('None')
     const [modalVisible, setModalVisible] = useState(false);
     const [modalPerson, setModalPerson] = useState([]);
-    const [wsClient, setWsClient] = useState('None');
     const url = apilist
     const url2 = apisign
+
+    const [ws, setWs] = useState(new WebSocket(wsurl));
+    //ws.close();
+    const [wsClient, setWsClient] = useState('None');
 
     ws.onopen = () => {
         // connection opened
@@ -36,11 +39,9 @@ export default function List() {
         mystring = msg.replace(/["']/g, "");
         console.log(mystring);
         if (mystring.startsWith("client:")) {
-            console.log(mystring.replace("client:", ""));
             setWsClient(mystring.replace("client:", ""));
         }
         if (mystring.startsWith("status ")) {
-            console.log(mystring.replace("status ", ""));
             switchStatuss(mystring.replace("status ", ""), 1, "ext")
         }
     };
@@ -184,7 +185,7 @@ export default function List() {
             })
                 .then((response) => response.json())
                 .then((responseData) => {
-                    console.log(JSON.stringify(responseData));
+                    //console.log(JSON.stringify(responseData));
                 })
                 .then((responseData) => {
                     let existingNames = [...names];
@@ -251,8 +252,8 @@ export default function List() {
                     renderItem={renderItems}
                     keyExtractor={keyExtractor}
                     initialNumToRender={15}
-                    maxToRenderPerBatch={15}
-                    updateCellsBatchingPeriod={5}
+                    maxToRenderPerBatch={20}
+                    updateCellsBatchingPeriod={4}
                     windowSize={5}
                     getItemLayout={(data, index) => (
                         { length: 50, offset: 50 * index, index }
@@ -264,6 +265,16 @@ export default function List() {
 
     return (
         <View style={styles.containerText}>
+            <Stack.Screen
+                options={{
+                    title: 'Guest List',
+                    headerStyle: { backgroundColor: '#f4511e' },
+                    headerTintColor: '#fff',
+                    headerTitleStyle: {
+                        fontWeight: 'bold',
+                    },
+                }}
+            />
             {/* <View>
                 <TextInput value={currentName} placeholder='name' onChangeText={setCurrentName} />
                 <TextInput value={currentTable} placeholder='table' onChangeText={setCurrentTable} />
@@ -271,7 +282,7 @@ export default function List() {
                 <TextInput value={currentNameTest} placeholder='key' onChangeText={setCurrentNameTest} />
                 <Button title='Show Name' onPress={() => findName(currentNameTest)} />
             </View> */}
-            <View>
+            <View style={{ height: "11%" }}>
                 <Text style={styles.title}>Filter Table</Text>
                 <FlatList data={jobTypes} style={styles.scroll} renderItem={({ item }) => (
                     <TouchableOpacity style={styles.tab(activeJobType, item)} onPress={() => {
@@ -283,7 +294,7 @@ export default function List() {
                 )}
                     keyExtractor={item => item} contentContainerStyle={{ columnGap: 12 }} horizontal />
             </View>
-            <View>
+            <View style={{ height: "11%" }}>
                 <Text style={styles.title}>Filter Status</Text>
                 <FlatList data={statusTypes} style={styles.scroll} renderItem={({ item }) => (
                     <TouchableOpacity style={styles.tab(setActiveStatusType, item)} onPress={() => {
@@ -295,7 +306,7 @@ export default function List() {
                 )}
                     keyExtractor={item => item} contentContainerStyle={{ columnGap: 12 }} horizontal />
             </View>
-            <View>
+            <View style={{ height: "3%" }}>
                 <Text>People Here: {displayNames.filter(name => name.sign === 1).length}/{displayNames.length}</Text>
             </View>
             <View style={styles.rowEntryHeader}>
@@ -307,7 +318,7 @@ export default function List() {
                     <Text style={styles.textEntry}></Text>
                 </View>
             </View>
-            <View style={{ height: "71.5%", marginTop: 10 }}>
+            <View style={{ height: "70%", marginTop: 10 }}>
                 {showNames()}
             </View>
             <StatusBar style='auto' />
@@ -318,7 +329,7 @@ export default function List() {
                         <Text style={styles.modalText}>Table: {modalPerson.tables}</Text>
                         <Text style={styles.modalText}>Status: {modalPerson.sign == 1 ? "Here" : "Not Here"} </Text>
                         <Text style={styles.modalText}>ID: {modalPerson.ticket} </Text>
-                        <Button title={modalPerson.sign == 1 ? "Sign Out" : "Sign In"} onPress={() => { switchStatuss(modalPerson.id, modalPerson.sign, "int")}} />
+                        <Button title={modalPerson.sign == 1 ? "Sign Out" : "Sign In"} onPress={() => { switchStatuss(modalPerson.id, modalPerson.sign, "int") }} />
                         {/* <Button title="Delete" onPress={() => {deleteName(modalPerson.id)}} /> */}
                         <TouchableHighlight
                             style={[styles.button, styles.buttonClose]}

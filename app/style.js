@@ -45,6 +45,7 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.25,
         shadowRadius: 4,
         elevation: 5,
+        height: "38%"
     },
     textStyle: {
         color: 'white',
@@ -107,9 +108,11 @@ const styles = StyleSheet.create({
     },
     button: {
         borderRadius: 8,
-        margin: 5,
-        padding: 5,
+        margin: 10,
+        padding: 10,
         elevation: 2,
+        width: "30%",
+        marginTop: "10%"
     },
     containerText: {
         width: "100%",
@@ -117,7 +120,7 @@ const styles = StyleSheet.create({
     barcodebox: {
         alignItems: 'center',
         justifyContent: 'center',
-        height: '60%',
+        height: '55%',
         width: 'auto',
         overflow: 'hidden'
     },
@@ -145,7 +148,8 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
         borderTopColor: '#d1d1d1',
         borderTopWidth: 1,
-        paddingTop: 5
+        paddingTop: 5,
+        height: "4%"
     },
 
 });
