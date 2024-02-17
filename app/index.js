@@ -14,24 +14,28 @@ export default function Home() {
 
     <View style={styles.container}>
       <Stack.Screen
-                options={{
-                    title: 'Welcome',
-                    headerStyle: { backgroundColor: '#f4511e' },
-                    headerTintColor: '#fff',
-                    headerTitleStyle: {
-                        fontWeight: 'bold',
-                    },
-                }}
-            />
-      <Button style={styles.button}
-        title="Scanner"
-        onPress={() => navigation.push("/scanner")}
+        options={{
+          title: 'Welcome',
+          headerStyle: { backgroundColor: '#f4511e' },
+          headerTintColor: '#fff',
+          headerTitleStyle: {
+            fontWeight: 'bold',
+          },
+        }}
       />
-      
-      <Button style={styles.button}
-        title="Guest List"
-        onPress={() => navigation.push("/list")}
+      <View style={styles.home}>
+        <Button style={styles.button}
+          title="Scanner"
+          onPress={() => navigation.push("/scanner")}
         />
+      </View>
+
+      <View style={styles.home}>
+        <Button style={styles.button}
+          title="Guest List"
+          onPress={() => navigation.push("/list")}
+        />
+      </View>
       <Toast />
     </View>
   );

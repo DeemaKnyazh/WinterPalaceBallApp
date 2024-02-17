@@ -19,10 +19,10 @@ export default function Scanner() {
     const [hasPermission, setHasPermission] = useState('granted');
     const [modalVisible, setModalVisible] = useState(false);
     const [modalPerson, setModalPerson] = useState([]);
-    const url = apilist
-    const url2 = apisign
+    const url = process.env.apilist
+    const url2 = process.env.apisign
 
-    const [ws, setWs] = useState(new WebSocket(wsurl));
+    const [ws, setWs] = useState(new WebSocket(process.env.wsurl));
     //ws.close();
     const [wsClient, setWsClient] = useState('None');
     ws.onopen = () => {
@@ -67,7 +67,7 @@ export default function Scanner() {
         fetch(url, {
             method: 'get',
             headers: new Headers({
-                'Authorization': apikey,
+                'Authorization': process.env.apikey,
             })
         })
             .then((resp) => resp.json())
@@ -149,6 +149,8 @@ export default function Scanner() {
     const findName = (test) => {
         let existingNames = [...names];
         let indexToUpdate;
+        console.log("|" + test + "|");
+        console.log(existingNames)
         for (i = 0; i < existingNames.length; i++) {
             if (existingNames[i].ticket == test)
                 indexToUpdate = i;
@@ -191,7 +193,7 @@ export default function Scanner() {
             fetch(url2 + id, {
                 method: 'post',
                 headers: new Headers({
-                    'Authorization': apikey,
+                    'Authorization': process.env.apikey,
                     'Client': wsClient,
                 })
             })

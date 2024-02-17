@@ -21,10 +21,10 @@ export default function List() {
     const [activeStatusType, setActiveStatusType] = useState('None')
     const [modalVisible, setModalVisible] = useState(false);
     const [modalPerson, setModalPerson] = useState([]);
-    const url = apilist
-    const url2 = apisign
+    const url = process.env.apilist;
+    const url2 = process.env.apisign;
 
-    const [ws, setWs] = useState(new WebSocket(wsurl));
+    const [ws, setWs] = useState(new WebSocket(process.env.wsurl));
     //ws.close();
     const [wsClient, setWsClient] = useState('None');
 
@@ -56,7 +56,7 @@ export default function List() {
         fetch(url, {
             method: 'get',
             headers: new Headers({
-                'Authorization': apikey,
+                'Authorization': process.env.apikey,
             })
         })
             .then((resp) => resp.json())
@@ -67,7 +67,7 @@ export default function List() {
         fetch(url, {
             method: 'get',
             headers: new Headers({
-                'Authorization': apikey,
+                'Authorization': process.env.apikey,
             })
         })
             .then((resp) => resp.json())
@@ -179,7 +179,7 @@ export default function List() {
             fetch(url2 + id, {
                 method: 'post',
                 headers: new Headers({
-                    'Authorization': apikey,
+                    'Authorization': process.env.apikey,
                     'Client': wsClient,
                 })
             })
@@ -193,6 +193,8 @@ export default function List() {
                     console.log(indexToUpdate, id)
                     existingNames[indexToUpdate].sign = status === 1 ? 0 : 1;
                     setNames(existingNames);
+                    console.log(existingNames[indexToUpdate].raffle);
+                    console.log(existingNames[indexToUpdate].ticket);
                     updateDisplayName(activeJobType, activeStatusType);
                     setCurrentNameTest(undefined);
                     setModalVisible(!modalVisible)
@@ -228,15 +230,13 @@ export default function List() {
 
     const Item = memo(({ item, status }) => (
         <View key={item.id} style={styles.row(status)}>
-            <Text style={styles.textEntry60}>{item.name}</Text>
+            <Text style={styles.textEntry50}>{item.name}</Text>
             {/* <Text style={styles.textEntry15}>{item.id}</Text> */}
             <Text style={styles.textEntry20}>{item.tables}</Text>
             {/* 45,15,15,25 */}
             {/* <Button title='Delete' onPress={() => deleteName(name.id)} /> */}
-            <View style={{ width: "25%", alignItems: 'center' }}>
-                <View style={styles.button}>
-                    <Button style={styles.button} title='Info' onPress={() => { openSettingsModal(item) }} />
-                </View>
+            <View style={{ width: "30%", alignItems: 'center' }}>
+                <Button style={styles.button} title='Info' onPress={() => { openSettingsModal(item) }} />
             </View>
         </View>
     ));
@@ -310,11 +310,11 @@ export default function List() {
                 <Text>People Here: {displayNames.filter(name => name.sign === 1).length}/{displayNames.length}</Text>
             </View>
             <View style={styles.rowEntryHeader}>
-                <Text style={styles.textEntry60}>Name</Text>
+                <Text style={styles.textEntry50}>Name</Text>
                 {/* <Text style={styles.textEntry15}>ID</Text> */}
                 <Text style={styles.textEntry20}>Table</Text>
                 {/* 45,15,15,25 */}
-                <View style={{ width: "25%", alignItems: 'center' }}>
+                <View style={{ width: "30%", alignItems: 'center' }}>
                     <Text style={styles.textEntry}></Text>
                 </View>
             </View>
@@ -329,6 +329,7 @@ export default function List() {
                         <Text style={styles.modalText}>Table: {modalPerson.tables}</Text>
                         <Text style={styles.modalText}>Status: {modalPerson.sign == 1 ? "Here" : "Not Here"} </Text>
                         <Text style={styles.modalText}>ID: {modalPerson.ticket} </Text>
+                        <Text style={styles.modalText}>Raffle: {modalPerson.raffle} </Text>
                         <Button title={modalPerson.sign == 1 ? "Sign Out" : "Sign In"} onPress={() => { switchStatuss(modalPerson.id, modalPerson.sign, "int") }} />
                         {/* <Button title="Delete" onPress={() => {deleteName(modalPerson.id)}} /> */}
                         <TouchableHighlight

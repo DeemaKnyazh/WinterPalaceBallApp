@@ -45,7 +45,7 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.25,
         shadowRadius: 4,
         elevation: 5,
-        height: "38%"
+        height: "43%"
     },
     textStyle: {
         color: 'white',
@@ -81,10 +81,17 @@ const styles = StyleSheet.create({
         textAlign: 'left',
         marginLeft: 5
     },
+    textEntry50: {
+        fontSize: 15,
+        fontWeight: 'bold',
+        width: '50%',
+        textAlign: 'left',
+        marginLeft: 5
+    },
     textEntry60: {
         fontSize: 15,
         fontWeight: 'bold',
-        width: '55%',
+        width: '60%',
         textAlign: 'left',
         marginLeft: 5
     },
@@ -112,7 +119,7 @@ const styles = StyleSheet.create({
         padding: 10,
         elevation: 2,
         width: "30%",
-        marginTop: "10%"
+        marginTop: "10%",
     },
     containerText: {
         width: "100%",
@@ -150,6 +157,10 @@ const styles = StyleSheet.create({
         borderTopWidth: 1,
         paddingTop: 5,
         height: "4%"
+    },
+    home: {
+        marginTop: "10%",
+        marginBottom: "10%",
     },
 
 });
