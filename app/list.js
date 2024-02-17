@@ -1,14 +1,16 @@
 import { StatusBar } from 'expo-status-bar';
 import { Text, View, TextInput, Button, Modal, TouchableHighlight, ScrollView, FlatList, TouchableOpacity, SafeAreaView } from 'react-native';
 import * as SQLite from 'expo-sqlite';
-import { useState, useEffect, useCallback, memo, useMemo } from 'react';
+import { useState, useEffect, useCallback, memo, useMemo, useRoute } from 'react';
 import styles from './style';
-import { Stack, useRouter } from "expo-router";
+import { Stack, useRouter, useLocalSearchParams } from "expo-router";
+import { apikey, apilist, apisign, wsurl } from "@env";
 
 export default function List() {
     const navigation = useRouter();
 
     const db = SQLite.openDatabase('WPB.db');
+
     const [isLoading, setIsLoading] = useState(false);
     const [names, setNames] = useState([]);
     const [currentName, setCurrentName] = useState(undefined);
@@ -17,28 +19,83 @@ export default function List() {
     const [currentNameTest, setCurrentNameTest] = useState(undefined);
     const [activeJobType, setActiveJobType] = useState('None')
     const [activeStatusType, setActiveStatusType] = useState('None')
-
     const [modalVisible, setModalVisible] = useState(false);
     const [modalPerson, setModalPerson] = useState([]);
+    const url = process.env.apilist;
+    const url2 = process.env.apisign;
+
+    const [ws, setWs] = useState(new WebSocket(process.env.wsurl));
+    //ws.close();
+    const [wsClient, setWsClient] = useState('None');
+
+    ws.onopen = () => {
+        // connection opened
+        console.log("opened");
+    };
+
+    ws.onmessage = (e) => {
+        // a message was received
+        const msg = JSON.stringify(e.data);
+        mystring = msg.replace(/["']/g, "");
+        console.log(mystring);
+        if (mystring.startsWith("client:")) {
+            setWsClient(mystring.replace("client:", ""));
+        }
+        if (mystring.startsWith("status ")) {
+            switchStatuss(mystring.replace("status ", ""), 1, "ext")
+        }
+    };
+
+    ws.onclose = (e) => {
+    };
+    ws.onerror = (e) => {
+
+    };
 
     useEffect(() => {
-        db.transaction(tx => {
-            //tx.executeSql('DELETE TABLE names')
-            tx.executeSql('CREATE TABLE IF NOT EXISTS names (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, tables INTEGER, sign INTEGER DEFAULT 0, ticket TEXT)')
-        });
+        fetch(url, {
+            method: 'get',
+            headers: new Headers({
+                'Authorization': process.env.apikey,
+            })
+        })
+            .then((resp) => resp.json())
+            .then((json) => setDisplayNames(json))
+            .catch((error) => console.error(error))
+            .finally(() => setIsLoading(false));
 
-        db.transaction(tx => {
-            tx.executeSql('SELECT * FROM names ORDER BY name', null,
-                (txObj, resultSet) => setNames(resultSet.rows._array),
-                (txObj, error) => console.log(error))
-        });
-        db.transaction(tx => {
-            tx.executeSql('SELECT * FROM names ORDER BY name', null,
-                (txObj, resultSet) => setDisplayNames(resultSet.rows._array),
-                (txObj, error) => console.log(error))
-        });
-        setIsLoading(false);
-    }, [])
+        fetch(url, {
+            method: 'get',
+            headers: new Headers({
+                'Authorization': process.env.apikey,
+            })
+        })
+            .then((resp) => resp.json())
+            .then((json) => setNames(json))
+            .catch((error) => console.error(error))
+            .finally(() => setIsLoading(false));
+    }, []);
+
+    // useEffect(() => {
+    //     db.transaction(tx => {
+    //         //tx.executeSql('DELETE TABLE names')
+    //         tx.executeSql('CREATE TABLE IF NOT EXISTS names (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, tables INTEGER, sign INTEGER DEFAULT 0, ticket TEXT)')
+    //     });
+
+    //     db.transaction(tx => {
+    //         tx.executeSql('SELECT * FROM names ORDER BY name', null,
+    //             (txObj, resultSet) => setNames(resultSet.rows._array),
+    //             (txObj, error) => console.log(error))
+    //     });
+    //     db.transaction(tx => {
+    //         tx.executeSql('SELECT * FROM names ORDER BY name', null,
+    //             (txObj, resultSet) => setDisplayNames(resultSet.rows._array),
+    //             (txObj, error) => console.log(error))
+    //     });
+    //     setIsLoading(false);
+    // }, [])
+
+    // console.log(names)
 
     const jobTypes = ["None", 1, 2, 3, 4, 5, 6, 7, 8, 9]
     const statusTypes = ["None", "Here", "Not Here"]
@@ -53,14 +110,14 @@ export default function List() {
 
     const addName = () => {
         let text1 = "WPB"
-        let acronym = currentName.split(/\s/).reduce((response,word)=> response+=word.slice(0,1),'')
-        let endcronym = currentName.split(/\s/).reduce((response,word)=> response+=word.slice(-2,-1),'')
+        let acronym = currentName.split(/\s/).reduce((response, word) => response += word.slice(0, 1), '')
+        let endcronym = currentName.split(/\s/).reduce((response, word) => response += word.slice(-2, -1), '')
         const CurrentTicket = text1.concat(acronym, endcronym);
         db.transaction(tx => {
             tx.executeSql('INSERT INTO names (name, sign, tables, ticket) values (?, 0, ?, ?)', [currentName, currentTable, CurrentTicket],
                 (txObj, resultSet) => {
                     let existingNames = [...names];
-                    existingNames.push({ id: resultSet.insertId, name: currentName, sign: 0, tables: currentTable, ticket: CurrentTicket});
+                    existingNames.push({ id: resultSet.insertId, name: currentName, sign: 0, tables: currentTable, ticket: CurrentTicket });
                     setNames(existingNames);
                     setCurrentName(undefined)
                 },
@@ -93,23 +150,57 @@ export default function List() {
         setCurrentNameTest(undefined);
     };
 
-    const switchStatuss = (id, status) => {
-        db.transaction(tx => {
-            tx.executeSql('UPDATE names SET sign = ? WHERE id = ?', [status === 1 ? 0 : 1, id],
-                (txObj, resultSet) => {
-                    if (resultSet.rowsAffected > 0) {
-                        let existingNames = [...names];
-                        const indexToUpdate = existingNames.findIndex(name => name.id === id);
-                        existingNames[indexToUpdate].sign = status === 1 ? 0 : 1;
-                        setNames(existingNames);
-                        updateDisplayName(activeJobType, activeStatusType);
-                        setCurrentNameTest(undefined);
-                        setModalVisible(!modalVisible)
-                    }
-                },
-                (txObj, error) => console.log(error)
-            );
-        });
+    const switchStatuss = (id, status, src) => {
+        // db.transaction(tx => {
+        //     tx.executeSql('UPDATE names SET sign = ? WHERE id = ?', [status === 1 ? 0 : 1, id],
+        //         (txObj, resultSet) => {
+        //             if (resultSet.rowsAffected > 0) {
+        //                 let existingNames = [...names];
+        //                 const indexToUpdate = existingNames.findIndex(name => name.id === id);
+        //                 existingNames[indexToUpdate].sign = status === 1 ? 0 : 1;
+        //                 setNames(existingNames);
+        //                 updateDisplayName(activeJobType, activeStatusType);
+        //                 setCurrentNameTest(undefined);
+        //                 setModalVisible(!modalVisible)
+        //             }
+        //         },
+        //         (txObj, error) => console.log(error)
+        //     );
+        // });
+        if (src == "ext") {
+            let existingNames = [...names];
+            const indexToUpdate = existingNames.findIndex(name => name.id == id);
+            existingNames[indexToUpdate].sign = existingNames[indexToUpdate].sign === 1 ? 0 : 1;
+            setNames(existingNames);
+            updateDisplayName(activeJobType, activeStatusType);
+            setCurrentNameTest(undefined);
+        }
+        if (src == "int") {
+            fetch(url2 + id, {
+                method: 'post',
+                headers: new Headers({
+                    'Authorization': process.env.apikey,
+                    'Client': wsClient,
+                })
+            })
+                .then((response) => response.json())
+                .then((responseData) => {
+                    //console.log(JSON.stringify(responseData));
+                })
+                .then((responseData) => {
+                    let existingNames = [...names];
+                    const indexToUpdate = existingNames.findIndex(name => name.id == id);
+                    console.log(indexToUpdate, id)
+                    existingNames[indexToUpdate].sign = status === 1 ? 0 : 1;
+                    setNames(existingNames);
+                    console.log(existingNames[indexToUpdate].raffle);
+                    console.log(existingNames[indexToUpdate].ticket);
+                    updateDisplayName(activeJobType, activeStatusType);
+                    setCurrentNameTest(undefined);
+                    setModalVisible(!modalVisible)
+                })
+                .catch((error) => console.error(error))
+        }
     }
 
     const openSettingsModal = (title) => {
@@ -139,16 +230,14 @@ export default function List() {
 
     const Item = memo(({ item, status }) => (
         <View key={item.id} style={styles.row(status)}>
-            <Text style={styles.textEntry60}>{item.name}</Text>
+            <Text style={styles.textEntry50}>{item.name}</Text>
             {/* <Text style={styles.textEntry15}>{item.id}</Text> */}
             <Text style={styles.textEntry20}>{item.tables}</Text>
             {/* 45,15,15,25 */}
             {/* <Button title='Delete' onPress={() => deleteName(name.id)} /> */}
-            <View style={{ width: "25%", alignItems: 'center' }}>
-                    <View style={styles.button}>
-                        <Button style={styles.button} title='Info' onPress={() => {openSettingsModal(item)}}/>
-                    </View>
-                </View>
+            <View style={{ width: "30%", alignItems: 'center' }}>
+                <Button style={styles.button} title='Info' onPress={() => { openSettingsModal(item) }} />
+            </View>
         </View>
     ));
 
@@ -163,8 +252,8 @@ export default function List() {
                     renderItem={renderItems}
                     keyExtractor={keyExtractor}
                     initialNumToRender={15}
-                    maxToRenderPerBatch={15}
-                    updateCellsBatchingPeriod={5}
+                    maxToRenderPerBatch={20}
+                    updateCellsBatchingPeriod={4}
                     windowSize={5}
                     getItemLayout={(data, index) => (
                         { length: 50, offset: 50 * index, index }
@@ -176,6 +265,16 @@ export default function List() {
 
     return (
         <View style={styles.containerText}>
+            <Stack.Screen
+                options={{
+                    title: 'Guest List',
+                    headerStyle: { backgroundColor: '#f4511e' },
+                    headerTintColor: '#fff',
+                    headerTitleStyle: {
+                        fontWeight: 'bold',
+                    },
+                }}
+            />
             {/* <View>
                 <TextInput value={currentName} placeholder='name' onChangeText={setCurrentName} />
                 <TextInput value={currentTable} placeholder='table' onChangeText={setCurrentTable} />
@@ -183,43 +282,43 @@ export default function List() {
                 <TextInput value={currentNameTest} placeholder='key' onChangeText={setCurrentNameTest} />
                 <Button title='Show Name' onPress={() => findName(currentNameTest)} />
             </View> */}
-            <View>
+            <View style={{ height: "11%" }}>
                 <Text style={styles.title}>Filter Table</Text>
                 <FlatList data={jobTypes} style={styles.scroll} renderItem={({ item }) => (
-                        <TouchableOpacity style={styles.tab(activeJobType, item)} onPress={() => {
-                                setActiveJobType(item);
-                                updateDisplayName(item, activeStatusType);
-                            }}>
+                    <TouchableOpacity style={styles.tab(activeJobType, item)} onPress={() => {
+                        setActiveJobType(item);
+                        updateDisplayName(item, activeStatusType);
+                    }}>
                         <Text style={styles.tabText(activeJobType, item)}>{item}</Text>
-                        </TouchableOpacity>
-                    )}
-                    keyExtractor={item => item} contentContainerStyle={{ columnGap: 12 }} horizontal/>
+                    </TouchableOpacity>
+                )}
+                    keyExtractor={item => item} contentContainerStyle={{ columnGap: 12 }} horizontal />
             </View>
-            <View>
+            <View style={{ height: "11%" }}>
                 <Text style={styles.title}>Filter Status</Text>
                 <FlatList data={statusTypes} style={styles.scroll} renderItem={({ item }) => (
-                        <TouchableOpacity style={styles.tab(setActiveStatusType, item)} onPress={() => {
-                                setActiveStatusType(item);
-                                updateDisplayName(activeJobType, item);
-                            }}>
+                    <TouchableOpacity style={styles.tab(setActiveStatusType, item)} onPress={() => {
+                        setActiveStatusType(item);
+                        updateDisplayName(activeJobType, item);
+                    }}>
                         <Text style={styles.tabText(activeStatusType, item)}>{item}</Text>
-                        </TouchableOpacity>
-                    )}
-                    keyExtractor={item => item} contentContainerStyle={{ columnGap: 12 }} horizontal/>
+                    </TouchableOpacity>
+                )}
+                    keyExtractor={item => item} contentContainerStyle={{ columnGap: 12 }} horizontal />
             </View>
-            <View>
+            <View style={{ height: "3%" }}>
                 <Text>People Here: {displayNames.filter(name => name.sign === 1).length}/{displayNames.length}</Text>
             </View>
             <View style={styles.rowEntryHeader}>
-                    <Text style={styles.textEntry60}>Name</Text>
-                    {/* <Text style={styles.textEntry15}>ID</Text> */}
-                    <Text style={styles.textEntry20}>Table</Text>
+                <Text style={styles.textEntry50}>Name</Text>
+                {/* <Text style={styles.textEntry15}>ID</Text> */}
+                <Text style={styles.textEntry20}>Table</Text>
                 {/* 45,15,15,25 */}
-                <View style={{ width: "25%", alignItems: 'center' }}>
+                <View style={{ width: "30%", alignItems: 'center' }}>
                     <Text style={styles.textEntry}></Text>
                 </View>
             </View>
-            <View style={{ height: "71.5%", marginTop: 10 }}>
+            <View style={{ height: "70%", marginTop: 10 }}>
                 {showNames()}
             </View>
             <StatusBar style='auto' />
@@ -230,11 +329,12 @@ export default function List() {
                         <Text style={styles.modalText}>Table: {modalPerson.tables}</Text>
                         <Text style={styles.modalText}>Status: {modalPerson.sign == 1 ? "Here" : "Not Here"} </Text>
                         <Text style={styles.modalText}>ID: {modalPerson.ticket} </Text>
-                        <Button title={modalPerson.sign == 1 ? "Sign Out" : "Sign In"} onPress={() => {switchStatuss(modalPerson.id, modalPerson.sign)}} />
+                        <Text style={styles.modalText}>Raffle: {modalPerson.raffle} </Text>
+                        <Button title={modalPerson.sign == 1 ? "Sign Out" : "Sign In"} onPress={() => { switchStatuss(modalPerson.id, modalPerson.sign, "int") }} />
                         {/* <Button title="Delete" onPress={() => {deleteName(modalPerson.id)}} /> */}
                         <TouchableHighlight
                             style={[styles.button, styles.buttonClose]}
-                            onPress={() => {setModalVisible(!modalVisible) }}>
+                            onPress={() => { setModalVisible(!modalVisible) }}>
                             <Text style={styles.textStyle}>Close</Text>
                         </TouchableHighlight>
                     </View>

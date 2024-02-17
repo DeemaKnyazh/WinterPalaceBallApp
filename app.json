@@ -8,6 +8,29 @@
       "expo-router"
     ],
     "name": "WinterPalaceBallApp",
-    "slug": "WinterPalaceBallApp"
+    "slug": "winterpalaceballapp",
+    "version": "0.1.1",
+    "icon": "./assets/images/icon.png",
+    "splash": {
+      "image": "./assets/images/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "extra": {
+      "router": {
+        "origin": false
+      },
+      "eas": {
+        "projectId": "c56fd2e7-1794-405a-913c-632e588afcc9"
+      }
+    },
+    "owner": "dknyazh",
+    "android": {
+      "package": "com.dknyazh.winterpalaceballapp",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/images/adaptive-icon.png",
+        "backgroundColor": "#FFFFFF"
+      }
+    }
   }
 }

@@ -45,6 +45,7 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.25,
         shadowRadius: 4,
         elevation: 5,
+        height: "43%"
     },
     textStyle: {
         color: 'white',
@@ -80,10 +81,17 @@ const styles = StyleSheet.create({
         textAlign: 'left',
         marginLeft: 5
     },
+    textEntry50: {
+        fontSize: 15,
+        fontWeight: 'bold',
+        width: '50%',
+        textAlign: 'left',
+        marginLeft: 5
+    },
     textEntry60: {
         fontSize: 15,
         fontWeight: 'bold',
-        width: '55%',
+        width: '60%',
         textAlign: 'left',
         marginLeft: 5
     },
@@ -107,9 +115,11 @@ const styles = StyleSheet.create({
     },
     button: {
         borderRadius: 8,
-        margin: 5,
-        padding: 5,
+        margin: 10,
+        padding: 10,
         elevation: 2,
+        width: "30%",
+        marginTop: "10%",
     },
     containerText: {
         width: "100%",
@@ -117,11 +127,9 @@ const styles = StyleSheet.create({
     barcodebox: {
         alignItems: 'center',
         justifyContent: 'center',
-        height: 300,
+        height: '55%',
         width: 'auto',
-        marginTop: '30%',
-        overflow: 'hidden',
-        borderRadius: 30,
+        overflow: 'hidden'
     },
     tab: (activeJobType, item) => ({
         paddingVertical: 12 / 2,
@@ -147,7 +155,12 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
         borderTopColor: '#d1d1d1',
         borderTopWidth: 1,
-        paddingTop: 5
+        paddingTop: 5,
+        height: "4%"
+    },
+    home: {
+        marginTop: "10%",
+        marginBottom: "10%",
     },
 
 });
