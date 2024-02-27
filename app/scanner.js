@@ -34,7 +34,6 @@ export default function Scanner() {
         // a message was received
         const msg = JSON.stringify(e.data);
         mystring = msg.replace(/["']/g, "");
-        console.log(mystring);
         if (mystring.startsWith("client:")) {
             setWsClient(mystring.replace("client:", ""));
         }
@@ -102,7 +101,6 @@ export default function Scanner() {
             text1: name + ' already signed in!',
             position: 'top',
             visibilityTime: 5000,
-            onHide: setScanned(false)
         });
     }
 
@@ -149,8 +147,6 @@ export default function Scanner() {
     const findName = (test) => {
         let existingNames = [...names];
         let indexToUpdate;
-        console.log("|" + test + "|");
-        console.log(existingNames)
         for (i = 0; i < existingNames.length; i++) {
             if (existingNames[i].ticket == test)
                 indexToUpdate = i;
@@ -160,6 +156,7 @@ export default function Scanner() {
         }
         else if (existingNames[indexToUpdate].sign == 1) {
             showUsedToast(existingNames[indexToUpdate].name)
+            openSettingsModal(existingNames[indexToUpdate]);
         }
         else {
             openSettingsModal(existingNames[indexToUpdate]);
@@ -235,12 +232,13 @@ export default function Scanner() {
                     onBarCodeScanned={scanned ? undefined : handleBarCodeScanned}
                     style={{ height: 750, width: "100%" }} />
             </View>
-            <View style={styles.modalView}>
+            <View style={styles.scannerView}>
                 <Text style={styles.modalName}>Last Scan</Text>
                 <Text style={styles.modalText}>{modalPerson.name}</Text>
                 <Text style={styles.modalText}>Table: {modalPerson.tables}</Text>
                 <Text style={styles.modalText}>Status: {modalPerson.sign == 1 ? "Here" : "Not Here"} </Text>
                 <Text style={styles.modalText}>ID: {modalPerson.ticket} </Text>
+                <Text style={styles.modalText}>Raffle: {modalPerson.raffle} </Text>
             </View>
             {/* <Text style={styles.maintext}>{text}</Text> */}
             {/* {scanned && <Button title={'Scan again?'} onPress={() => setScanned(false)} color='tomato' />} */}
@@ -249,14 +247,21 @@ export default function Scanner() {
                 <View style={styles.centeredView}>
                     <View style={styles.modalView}>
                         <Text style={styles.modalName}>{modalPerson.name}</Text>
-                        <Text style={styles.modalText}>Table: {modalPerson.tables}</Text>
+                        <TouchableOpacity onPress={() => {
+                            setActiveJobType(modalPerson.tables);
+                            updateDisplayName(modalPerson.tables, activeStatusType);
+                            setModalVisible(!modalVisible);
+                        }} >
+                            <Text style={styles.modalText}>Table: {modalPerson.tables}</Text>
+                        </TouchableOpacity>
                         <Text style={styles.modalText}>Status: {modalPerson.sign == 1 ? "Here" : "Not Here"} </Text>
                         <Text style={styles.modalText}>ID: {modalPerson.ticket} </Text>
-                        <Button title={modalPerson.sign == 1 ? "Sign Out" : "Sign In"} onPress={() => { switchStatuss(modalPerson.id, modalPerson.sign, "int"); setScanned(false) }} />
+                        <Text style={styles.modalText}>Raffle: {modalPerson.raffle} </Text>
+                        <Button disabled={modalPerson.sign == 1 ? true : false} title={modalPerson.sign == 1 ? "Sign Out" : "Sign In"} onPress={() => { switchStatuss(modalPerson.id, modalPerson.sign, "int"); setScanned(false) }} />
                         <TouchableHighlight
                             style={[styles.button, styles.buttonClose]}
                             onPress={() => { setModalVisible(!modalVisible); setScanned(false) }}>
-                            <Text style={styles.textStyle}>Hide Modal</Text>
+                            <Text style={styles.textStyle}>Close</Text>
                         </TouchableHighlight>
                     </View>
                 </View>

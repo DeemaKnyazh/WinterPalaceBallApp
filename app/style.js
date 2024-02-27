@@ -45,7 +45,7 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.25,
         shadowRadius: 4,
         elevation: 5,
-        height: "43%"
+        height: "45%"
     },
     textStyle: {
         color: 'white',
@@ -99,11 +99,13 @@ const styles = StyleSheet.create({
         fontSize: 25,
         fontWeight: 'bold',
         textDecorationLine: 'underline',
+        paddingTop: 0,
         paddingBottom: 5
     },
     modalText: {
         fontSize: 20,
-        paddingVertical: 5
+        paddingVertical: 7,
+        paddingHorizontal: 30,
     },
     textEntryModal: {
         fontSize: 20,
@@ -127,7 +129,7 @@ const styles = StyleSheet.create({
     barcodebox: {
         alignItems: 'center',
         justifyContent: 'center',
-        height: '55%',
+        height: '50%',
         width: 'auto',
         overflow: 'hidden'
     },
@@ -161,6 +163,22 @@ const styles = StyleSheet.create({
     home: {
         marginTop: "10%",
         marginBottom: "10%",
+    },
+    scannerView: {
+        margin: 25,
+        backgroundColor: 'white',
+        borderRadius: 20,
+        padding: 35,
+        alignItems: 'center',
+        shadowColor: '#000',
+        shadowOffset: {
+            width: 0,
+            height: 2,
+        },
+        shadowOpacity: 0.25,
+        shadowRadius: 4,
+        elevation: 5,
+        height: "45%"
     },
 
 });

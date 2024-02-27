@@ -1,32 +1,35 @@
-import { StatusBar } from 'expo-status-bar';
-import { Text, View, TextInput, Button, Modal, TouchableHighlight, ScrollView, FlatList, TouchableOpacity, SafeAreaView } from 'react-native';
-import * as SQLite from 'expo-sqlite';
-import { useState, useEffect, useCallback, memo, useMemo, useRoute } from 'react';
-import styles from './style';
-import { Stack, useRouter, useLocalSearchParams } from "expo-router";
-import { apikey, apilist, apisign, wsurl } from "@env";
+import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome'
+import { faArrowDownAZ } from '@fortawesome/free-solid-svg-icons/faArrowDownAZ'
+import { faArrowDownZA } from '@fortawesome/free-solid-svg-icons/faArrowDownZA'
+import { faArrowDown19 } from '@fortawesome/free-solid-svg-icons/faArrowDown19'
+import { Stack, useRouter } from "expo-router";
+import * as SQLite from "expo-sqlite";
+import { StatusBar } from "expo-status-bar";
+import { useState, useEffect, useCallback, memo } from "react";
+import { Text, View, Button, Modal, TouchableHighlight, FlatList, TouchableOpacity, SafeAreaView, } from "react-native";
+import styles from "./style";
 
 export default function List() {
     const navigation = useRouter();
 
-    const db = SQLite.openDatabase('WPB.db');
+    const db = SQLite.openDatabase("WPB.db");
 
     const [isLoading, setIsLoading] = useState(false);
     const [names, setNames] = useState([]);
-    const [currentName, setCurrentName] = useState(undefined);
     const [displayNames, setDisplayNames] = useState([]);
     const [currentTable, setCurrentTable] = useState(undefined);
-    const [currentNameTest, setCurrentNameTest] = useState(undefined);
-    const [activeJobType, setActiveJobType] = useState('None')
-    const [activeStatusType, setActiveStatusType] = useState('None')
+    const [activeJobType, setActiveJobType] = useState("None");
+    const [activeStatusType, setActiveStatusType] = useState("None");
     const [modalVisible, setModalVisible] = useState(false);
     const [modalPerson, setModalPerson] = useState([]);
+    const [order, setOrder] = useState("aalph");
     const url = process.env.apilist;
     const url2 = process.env.apisign;
 
+    // eslint-disable-next-line no-undef
     const [ws, setWs] = useState(new WebSocket(process.env.wsurl));
     //ws.close();
-    const [wsClient, setWsClient] = useState('None');
+    const [wsClient, setWsClient] = useState("None");
 
     ws.onopen = () => {
         // connection opened
@@ -42,22 +45,19 @@ export default function List() {
             setWsClient(mystring.replace("client:", ""));
         }
         if (mystring.startsWith("status ")) {
-            switchStatuss(mystring.replace("status ", ""), 1, "ext")
+            switchStatuss(mystring.replace("status ", ""), 1, "ext");
         }
     };
 
-    ws.onclose = (e) => {
-    };
-    ws.onerror = (e) => {
-
-    };
+    ws.onclose = (e) => { };
+    ws.onerror = (e) => { };
 
     useEffect(() => {
         fetch(url, {
-            method: 'get',
+            method: "get",
             headers: new Headers({
-                'Authorization': process.env.apikey,
-            })
+                Authorization: process.env.apikey,
+            }),
         })
             .then((resp) => resp.json())
             .then((json) => setDisplayNames(json))
@@ -65,10 +65,10 @@ export default function List() {
             .finally(() => setIsLoading(false));
 
         fetch(url, {
-            method: 'get',
+            method: "get",
             headers: new Headers({
-                'Authorization': process.env.apikey,
-            })
+                Authorization: process.env.apikey,
+            }),
         })
             .then((resp) => resp.json())
             .then((json) => setNames(json))
@@ -76,29 +76,8 @@ export default function List() {
             .finally(() => setIsLoading(false));
     }, []);
 
-    // useEffect(() => {
-    //     db.transaction(tx => {
-    //         //tx.executeSql('DELETE TABLE names')
-    //         tx.executeSql('CREATE TABLE IF NOT EXISTS names (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, tables INTEGER, sign INTEGER DEFAULT 0, ticket TEXT)')
-    //     });
-
-    //     db.transaction(tx => {
-    //         tx.executeSql('SELECT * FROM names ORDER BY name', null,
-    //             (txObj, resultSet) => setNames(resultSet.rows._array),
-    //             (txObj, error) => console.log(error))
-    //     });
-    //     db.transaction(tx => {
-    //         tx.executeSql('SELECT * FROM names ORDER BY name', null,
-    //             (txObj, resultSet) => setDisplayNames(resultSet.rows._array),
-    //             (txObj, error) => console.log(error))
-    //     });
-    //     setIsLoading(false);
-    // }, [])
-
-    // console.log(names)
-
-    const jobTypes = ["None", 1, 2, 3, 4, 5, 6, 7, 8, 9]
-    const statusTypes = ["None", "Here", "Not Here"]
+    const jobTypes = ["None", 1, 2, 3, 4, 5, 6, 7, 8, 9];
+    const statusTypes = ["None", "Here", "Not Here"];
 
     if (isLoading) {
         return (
@@ -109,124 +88,111 @@ export default function List() {
     }
 
     const addName = () => {
-        let text1 = "WPB"
-        let acronym = currentName.split(/\s/).reduce((response, word) => response += word.slice(0, 1), '')
-        let endcronym = currentName.split(/\s/).reduce((response, word) => response += word.slice(-2, -1), '')
+        const text1 = "WPB";
+        const acronym = currentName
+            .split(/\s/)
+            .reduce((response, word) => (response += word.slice(0, 1)), "");
+        const endcronym = currentName
+            .split(/\s/)
+            .reduce((response, word) => (response += word.slice(-2, -1)), "");
         const CurrentTicket = text1.concat(acronym, endcronym);
-        db.transaction(tx => {
-            tx.executeSql('INSERT INTO names (name, sign, tables, ticket) values (?, 0, ?, ?)', [currentName, currentTable, CurrentTicket],
+        db.transaction((tx) => {
+            tx.executeSql(
+                "INSERT INTO names (name, sign, tables, ticket) values (?, 0, ?, ?)",
+                [currentName, currentTable, CurrentTicket],
                 (txObj, resultSet) => {
-                    let existingNames = [...names];
-                    existingNames.push({ id: resultSet.insertId, name: currentName, sign: 0, tables: currentTable, ticket: CurrentTicket });
+                    const existingNames = [...names];
+                    existingNames.push({
+                        id: resultSet.insertId,
+                        name: currentName,
+                        sign: 0,
+                        tables: currentTable,
+                        ticket: CurrentTicket,
+                    });
                     setNames(existingNames);
-                    setCurrentName(undefined)
+                    setCurrentName(undefined);
                 },
-                (txObj, error) => console.log(error)
+                (txObj, error) => console.log(error),
             );
         });
-    }
-
-    // const deleteName = (id) => {
-    //     db.transaction(tx => {
-    //         tx.executeSql('DELETE FROM names WHERE id = ?', [id],
-    //             (txObj, resultSet) => {
-    //                 if (resultSet.rowsAffected > 0) {
-    //                     let existingNames = [...names].filter(name => name.id !== id);
-    //                     setNames(existingNames)
-    //                 }
-    //             },
-    //             (txObj, error) => console.log(error)
-    //         );
-    //     });
-    // };
+    };
 
     const findName = (test) => {
-        let existingNames
+        let existingNames;
         for (i = 0; i < names.length; i++) {
-            if (names[i].id == test)
-                existingNames = i;
+            if (names[i].id == test) existingNames = i;
         }
-        openSettingsModal(names[existingNames].name, names[existingNames].tables, names[existingNames].sign, names[existingNames].id);
-        setCurrentNameTest(undefined);
+        openSettingsModal(
+            names[existingNames].name,
+            names[existingNames].tables,
+            names[existingNames].sign,
+            names[existingNames].id,
+        );
     };
 
     const switchStatuss = (id, status, src) => {
-        // db.transaction(tx => {
-        //     tx.executeSql('UPDATE names SET sign = ? WHERE id = ?', [status === 1 ? 0 : 1, id],
-        //         (txObj, resultSet) => {
-        //             if (resultSet.rowsAffected > 0) {
-        //                 let existingNames = [...names];
-        //                 const indexToUpdate = existingNames.findIndex(name => name.id === id);
-        //                 existingNames[indexToUpdate].sign = status === 1 ? 0 : 1;
-        //                 setNames(existingNames);
-        //                 updateDisplayName(activeJobType, activeStatusType);
-        //                 setCurrentNameTest(undefined);
-        //                 setModalVisible(!modalVisible)
-        //             }
-        //         },
-        //         (txObj, error) => console.log(error)
-        //     );
-        // });
         if (src == "ext") {
-            let existingNames = [...names];
-            const indexToUpdate = existingNames.findIndex(name => name.id == id);
-            existingNames[indexToUpdate].sign = existingNames[indexToUpdate].sign === 1 ? 0 : 1;
+            const existingNames = [...names];
+            const indexToUpdate = existingNames.findIndex((name) => name.id == id);
+            existingNames[indexToUpdate].sign =
+                existingNames[indexToUpdate].sign === 1 ? 0 : 1;
             setNames(existingNames);
             updateDisplayName(activeJobType, activeStatusType);
-            setCurrentNameTest(undefined);
         }
         if (src == "int") {
             fetch(url2 + id, {
-                method: 'post',
+                method: "post",
                 headers: new Headers({
-                    'Authorization': process.env.apikey,
-                    'Client': wsClient,
-                })
+                    Authorization: process.env.apikey,
+                    Client: wsClient,
+                }),
             })
                 .then((response) => response.json())
                 .then((responseData) => {
                     //console.log(JSON.stringify(responseData));
                 })
                 .then((responseData) => {
-                    let existingNames = [...names];
-                    const indexToUpdate = existingNames.findIndex(name => name.id == id);
-                    console.log(indexToUpdate, id)
+                    const existingNames = [...names];
+                    const indexToUpdate = existingNames.findIndex(
+                        (name) => name.id == id,
+                    );
+                    console.log(indexToUpdate, id);
                     existingNames[indexToUpdate].sign = status === 1 ? 0 : 1;
                     setNames(existingNames);
                     console.log(existingNames[indexToUpdate].raffle);
                     console.log(existingNames[indexToUpdate].ticket);
                     updateDisplayName(activeJobType, activeStatusType);
-                    setCurrentNameTest(undefined);
-                    setModalVisible(!modalVisible)
+                    setModalVisible(!modalVisible);
                 })
-                .catch((error) => console.error(error))
+                .catch((error) => console.error(error));
         }
-    }
+    };
 
     const openSettingsModal = (title) => {
         setModalPerson(title);
         setModalVisible(!modalVisible);
-    }
+    };
 
     const updateDisplayName = (table, status) => {
-        if (table == 'None' && status == 'None') {
-            let existingNames = names
-            setDisplayNames(existingNames)
+        if (table == "None" && status == "None") {
+            const existingNames = names;
+            setDisplayNames(existingNames);
+        } else if (table == "None") {
+            const existingNames = names.filter(
+                (name) => name.sign === (status == "Here" ? 1 : 0),
+            );
+            setDisplayNames(existingNames);
+        } else if (status == "None") {
+            const existingNames = names.filter((name) => name.tables === table);
+            setDisplayNames(existingNames);
+        } else {
+            const existingNames = names.filter((name) => name.tables === table);
+            const existingNames2 = existingNames.filter(
+                (name) => name.sign === (status == "Here" ? 1 : 0),
+            );
+            setDisplayNames(existingNames2);
         }
-        else if (table == 'None') {
-            let existingNames = names.filter(name => name.sign === (status == "Here" ? 1 : 0));
-            setDisplayNames(existingNames)
-        }
-        else if (status == 'None') {
-            let existingNames = names.filter(name => name.tables === table);
-            setDisplayNames(existingNames)
-        }
-        else {
-            let existingNames = names.filter(name => name.tables === table);
-            let existingNames2 = existingNames.filter(name => name.sign === (status == "Here" ? 1 : 0));
-            setDisplayNames(existingNames2)
-        }
-    }
+    };
 
     const Item = memo(({ item, status }) => (
         <View key={item.id} style={styles.row(status)}>
@@ -235,14 +201,23 @@ export default function List() {
             <Text style={styles.textEntry20}>{item.tables}</Text>
             {/* 45,15,15,25 */}
             {/* <Button title='Delete' onPress={() => deleteName(name.id)} /> */}
-            <View style={{ width: "30%", alignItems: 'center' }}>
-                <Button style={styles.button} title='Info' onPress={() => { openSettingsModal(item) }} />
+            <View style={{ width: "30%", alignItems: "center" }}>
+                <Button
+                    style={styles.button}
+                    title="Info"
+                    onPress={() => {
+                        openSettingsModal(item);
+                    }}
+                />
             </View>
         </View>
     ));
 
-    const renderItems = useCallback(({ item }) => <Item item={item} status={item.sign} />, []);
-    const keyExtractor = useCallback((item) => item.id, [])
+    const renderItems = useCallback(
+        ({ item }) => <Item item={item} status={item.sign} />,
+        [],
+    );
+    const keyExtractor = useCallback((item) => item.id, []);
 
     const showNames = () => {
         return (
@@ -255,86 +230,168 @@ export default function List() {
                     maxToRenderPerBatch={20}
                     updateCellsBatchingPeriod={4}
                     windowSize={5}
-                    getItemLayout={(data, index) => (
-                        { length: 50, offset: 50 * index, index }
-                    )}
+                    getItemLayout={(data, index) => ({
+                        length: 50,
+                        offset: 50 * index,
+                        index,
+                    })}
                 />
             </SafeAreaView>
         );
+    };
+
+    const toggleButton = () => {
+        if (order === "num") {
+            console.log(order)
+            setOrder("aalph")
+            const existingNames = names.sort((a, b) => a.id - b.id);
+            setNames(existingNames);
+            updateDisplayName(activeJobType, activeStatusType);
+        }else if (order === "aalph"){
+            console.log(order)
+            setOrder("zalph")
+            const existingNames = names.sort((a, b) => b.name.localeCompare(a.name));
+            setNames(existingNames);
+            updateDisplayName(activeJobType, activeStatusType);
+        }else {
+            console.log(order)
+            setOrder("num")
+            const existingNames = names.sort((a, b) => a.name.localeCompare(b.name));
+            setNames(existingNames);
+            updateDisplayName(activeJobType, activeStatusType);
+        }
+        print(order);
+    };
+
+    function sortIcon(sort) {
+        if(sort == "aalph"){
+            return faArrowDown19
+        }
+        else if(sort == "zalph"){
+            return faArrowDownZA
+        }
+        else{
+            return faArrowDownAZ
+        }
     }
 
     return (
         <View style={styles.containerText}>
             <Stack.Screen
                 options={{
-                    title: 'Guest List',
-                    headerStyle: { backgroundColor: '#f4511e' },
-                    headerTintColor: '#fff',
+                    title: "Guest List",
+                    headerStyle: { backgroundColor: "#f4511e" },
+                    headerTintColor: "#fff",
                     headerTitleStyle: {
-                        fontWeight: 'bold',
+                        fontWeight: "bold",
                     },
+                    headerRight: () => (
+                        <TouchableOpacity activeOpacity={0.5} title={order} onPress={toggleButton} >
+                            <FontAwesomeIcon icon={sortIcon(order)} color="black" size={30} />
+                        </TouchableOpacity>
+                    )
                 }}
             />
-            {/* <View>
-                <TextInput value={currentName} placeholder='name' onChangeText={setCurrentName} />
-                <TextInput value={currentTable} placeholder='table' onChangeText={setCurrentTable} />
-                <Button title='Add Name' onPress={addName} />
-                <TextInput value={currentNameTest} placeholder='key' onChangeText={setCurrentNameTest} />
-                <Button title='Show Name' onPress={() => findName(currentNameTest)} />
-            </View> */}
             <View style={{ height: "11%" }}>
                 <Text style={styles.title}>Filter Table</Text>
-                <FlatList data={jobTypes} style={styles.scroll} renderItem={({ item }) => (
-                    <TouchableOpacity style={styles.tab(activeJobType, item)} onPress={() => {
-                        setActiveJobType(item);
-                        updateDisplayName(item, activeStatusType);
-                    }}>
-                        <Text style={styles.tabText(activeJobType, item)}>{item}</Text>
-                    </TouchableOpacity>
-                )}
-                    keyExtractor={item => item} contentContainerStyle={{ columnGap: 12 }} horizontal />
+                <FlatList
+                    data={jobTypes}
+                    style={styles.scroll}
+                    renderItem={({ item }) => (
+                        <TouchableOpacity
+                            style={styles.tab(activeJobType, item)}
+                            onPress={() => {
+                                setActiveJobType(item);
+                                updateDisplayName(item, activeStatusType);
+                            }}
+                        >
+                            <Text style={styles.tabText(activeJobType, item)}>{item}</Text>
+                        </TouchableOpacity>
+                    )}
+                    keyExtractor={(item) => item}
+                    contentContainerStyle={{ columnGap: 12 }}
+                    horizontal
+                />
             </View>
             <View style={{ height: "11%" }}>
                 <Text style={styles.title}>Filter Status</Text>
-                <FlatList data={statusTypes} style={styles.scroll} renderItem={({ item }) => (
-                    <TouchableOpacity style={styles.tab(setActiveStatusType, item)} onPress={() => {
-                        setActiveStatusType(item);
-                        updateDisplayName(activeJobType, item);
-                    }}>
-                        <Text style={styles.tabText(activeStatusType, item)}>{item}</Text>
-                    </TouchableOpacity>
-                )}
-                    keyExtractor={item => item} contentContainerStyle={{ columnGap: 12 }} horizontal />
+                <FlatList
+                    data={statusTypes}
+                    style={styles.scroll}
+                    renderItem={({ item }) => (
+                        <TouchableOpacity
+                            style={styles.tab(activeStatusType, item)}
+                            onPress={() => {
+                                setActiveStatusType(item);
+                                updateDisplayName(activeJobType, item);
+                            }}
+                        >
+                            <Text style={styles.tabText(activeStatusType, item)}>{item}</Text>
+                        </TouchableOpacity>
+                    )}
+                    keyExtractor={(item) => item}
+                    contentContainerStyle={{ columnGap: 12 }}
+                    horizontal
+                />
             </View>
             <View style={{ height: "3%" }}>
-                <Text>People Here: {displayNames.filter(name => name.sign === 1).length}/{displayNames.length}</Text>
+                <Text>
+                    People Here: {displayNames.filter((name) => name.sign === 1).length}/
+                    {displayNames.length}
+                </Text>
             </View>
             <View style={styles.rowEntryHeader}>
                 <Text style={styles.textEntry50}>Name</Text>
                 {/* <Text style={styles.textEntry15}>ID</Text> */}
                 <Text style={styles.textEntry20}>Table</Text>
                 {/* 45,15,15,25 */}
-                <View style={{ width: "30%", alignItems: 'center' }}>
-                    <Text style={styles.textEntry}></Text>
+                <View style={{ width: "30%", alignItems: "center" }}>
+                    <Text style={styles.textEntry} />
                 </View>
             </View>
-            <View style={{ height: "70%", marginTop: 10 }}>
-                {showNames()}
-            </View>
-            <StatusBar style='auto' />
-            <Modal animationType="fade" transparent={true} visible={modalVisible} useNativeDriver={true} hardwareAccelerated={true} >
+            <View style={{ height: "70%", marginTop: 10 }}>{showNames()}</View>
+            <StatusBar style="auto" />
+            <Modal
+                animationType="fade"
+                transparent
+                visible={modalVisible}
+                useNativeDriver
+                hardwareAccelerated
+            >
                 <View style={styles.centeredView}>
                     <View style={styles.modalView}>
                         <Text style={styles.modalName}>{modalPerson.name}</Text>
-                        <Text style={styles.modalText}>Table: {modalPerson.tables}</Text>
-                        <Text style={styles.modalText}>Status: {modalPerson.sign == 1 ? "Here" : "Not Here"} </Text>
+                        <TouchableOpacity onPress={() => {
+                            setActiveJobType(modalPerson.tables);
+                            updateDisplayName(modalPerson.tables, activeStatusType);
+                            setModalVisible(!modalVisible);
+                        }} >
+                            <Text style={styles.modalText}>Table: {modalPerson.tables}</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity onPress={() => {
+                            setActiveStatusType(modalPerson.status);
+                            updateDisplayName(activeJobType, modalPerson.status);
+                            setModalVisible(!modalVisible);
+                        }} >
+                            <Text style={styles.modalText}>
+                                Status: {modalPerson.sign == 1 ? "Here" : "Not Here"}{" "}
+                            </Text>                       
+                        </TouchableOpacity>
                         <Text style={styles.modalText}>ID: {modalPerson.ticket} </Text>
                         <Text style={styles.modalText}>Raffle: {modalPerson.raffle} </Text>
-                        <Button title={modalPerson.sign == 1 ? "Sign Out" : "Sign In"} onPress={() => { switchStatuss(modalPerson.id, modalPerson.sign, "int") }} />
+                        <Button
+                            title={modalPerson.sign == 1 ? "Sign Out" : "Sign In"}
+                            onPress={() => {
+                                switchStatuss(modalPerson.id, modalPerson.sign, "int");
+                            }}
+                        />
                         {/* <Button title="Delete" onPress={() => {deleteName(modalPerson.id)}} /> */}
                         <TouchableHighlight
                             style={[styles.button, styles.buttonClose]}
-                            onPress={() => { setModalVisible(!modalVisible) }}>
+                            onPress={() => {
+                                setModalVisible(!modalVisible);
+                            }}
+                        >
                             <Text style={styles.textStyle}>Close</Text>
                         </TouchableHighlight>
                     </View>

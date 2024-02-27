@@ -31,6 +31,13 @@
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#FFFFFF"
       }
-    }
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/c56fd2e7-1794-405a-913c-632e588afcc9"
+    },
+    "ios": {}
   }
 }
