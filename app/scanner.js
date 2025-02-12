@@ -2,7 +2,7 @@ import { StatusBar } from 'expo-status-bar';
 import { StyleSheet, Text, View, TextInput, Button, Modal, TouchableHighlight, ScrollView, FlatList, TouchableOpacity } from 'react-native';
 import * as SQLite from 'expo-sqlite';
 import { useState, useEffect, useRoute } from 'react';
-import { BarCodeScanner } from 'expo-barcode-scanner';
+import { CameraView, CameraType, useCameraPermissions } from 'expo-camera';
 import styles from './style';
 import { Stack, useRouter } from "expo-router";
 import * as Haptics from 'expo-haptics';
@@ -12,19 +12,22 @@ import { apikey, apilist, apisign, wsurl } from "@env";
 export default function Scanner() {
     const navigation = useRouter();
 
-    const db = SQLite.openDatabase('WPB.db');
+    const db = SQLite.openDatabaseAsync('WPB.db');
     const [isLoading, setIsLoading] = useState(false);
     const [names, setNames] = useState([]);
     const [scanned, setScanned] = useState(false);
-    const [hasPermission, setHasPermission] = useState('granted');
     const [modalVisible, setModalVisible] = useState(false);
     const [modalPerson, setModalPerson] = useState([]);
+
+    const [facing, setFacing] = useState("Back");
+    const [permission, requestPermission] = useCameraPermissions();
+
     const url = process.env.apilist
     const url2 = process.env.apisign
 
     const [ws, setWs] = useState(new WebSocket(process.env.wsurl));
     //ws.close();
-    const [wsClient, setWsClient] = useState('None');
+    const [wsClient, setWsClient] = useState("Noner");
     ws.onopen = () => {
         // connection opened
         console.log("opened");
@@ -45,7 +48,6 @@ export default function Scanner() {
     ws.onclose = (e) => {
     };
     ws.onerror = (e) => {
-
     };
 
     // useEffect(() => {
@@ -75,16 +77,30 @@ export default function Scanner() {
             .finally(() => setIsLoading(false));
     }, []);
 
+    if (!permission) {
+        // Camera permissions are still loading.
+        return (
+            <View style={styles.container}>
+                <Text>Requesting for camera permission</Text>
+            </View>)
+    }
+
+    if (!permission.granted) {
+        // Camera permissions are not granted yet.
+        return (
+            <View style={styles.container}>
+                <Text style={styles.message}>We need your permission to show the camera</Text>
+                <Button onPress={requestPermission} title="grant permission" />
+            </View>
+        );
+    }
+
+    function toggleCameraFacing() {
+        setFacing(current => (current === 'back' ? 'front' : 'back'));
+    }
 
     const jobTypes = ["None", 1, 2, 3, 4, 5, 6, 7, 8, 9]
     const statusTypes = ["None", "Here", "Not Here"]
-
-    const askForCameraPermission = () => {
-        (async () => {
-            const { status } = await BarCodeScanner.requestPermissionsAsync();
-            setHasPermission(status === 'granted');
-        })()
-    }
 
     const showSuccessInToast = (name) => {
         Toast.show({
@@ -121,21 +137,6 @@ export default function Scanner() {
         findName(data);
     };
 
-    // Check permissions and return the screens
-    if (hasPermission === null) {
-        return (
-            <View style={styles.container}>
-                <Text>Requesting for camera permission</Text>
-            </View>)
-    }
-    if (hasPermission === false) {
-        return (
-            <View style={styles.container}>
-                <Text style={{ margin: 10 }}>No access to camera</Text>
-                <Button title={'Allow Camera'} onPress={() => askForCameraPermission()} />
-            </View>)
-    }
-
     if (isLoading) {
         return (
             <View style={styles.container}>
@@ -147,7 +148,7 @@ export default function Scanner() {
     const findName = (test) => {
         let existingNames = [...names];
         let indexToUpdate;
-        for (i = 0; i < existingNames.length; i++) {
+        for (let i = 0; i < existingNames.length; i++) {
             if (existingNames[i].ticket == test)
                 indexToUpdate = i;
         }
@@ -187,14 +188,13 @@ export default function Scanner() {
             setNames(existingNames);
         }
         if (src == "int") {
-            fetch(url2 + id, {
+            fetch(url2 + "/" + id, {
                 method: 'post',
                 headers: new Headers({
                     'Authorization': process.env.apikey,
                     'Client': wsClient,
                 })
             })
-                .then((response) => response.json())
                 .then((responseData) => {
                     console.log(JSON.stringify(responseData));
                 })
@@ -220,17 +220,21 @@ export default function Scanner() {
             <Stack.Screen
                 options={{
                     title: 'Scanner',
-                    headerStyle: { backgroundColor: '#f4511e' },
-                    headerTintColor: '#fff',
+                    headerStyle: { backgroundColor: "#fff" },
+                    headerTintColor: "black",
                     headerTitleStyle: {
-                        fontWeight: 'bold',
+                        fontWeight: "bold",
                     },
                 }}
             />
             <View style={styles.barcodebox}>
-                <BarCodeScanner
-                    onBarCodeScanned={scanned ? undefined : handleBarCodeScanned}
-                    style={{ height: 750, width: "100%" }} />
+                <CameraView style={{ height: 750, width: '100%' }} facing={facing} barcodeScannerSettings={{ barcodeTypes: ["qr"], }} onBarcodeScanned={scanned ? undefined : handleBarCodeScanned}>
+                    <View style={styles.buttonContainer}>
+                        <TouchableOpacity style={styles.button} onPress={toggleCameraFacing}>
+                            <Text style={styles.text}>Flip Camera</Text>
+                        </TouchableOpacity>
+                    </View>
+                </CameraView>
             </View>
             <View style={styles.scannerView}>
                 <Text style={styles.modalName}>Last Scan</Text>
@@ -248,20 +252,27 @@ export default function Scanner() {
                     <View style={styles.modalView}>
                         <Text style={styles.modalName}>{modalPerson.name}</Text>
                         <TouchableOpacity onPress={() => {
-                            setActiveJobType(modalPerson.tables);
-                            updateDisplayName(modalPerson.tables, activeStatusType);
-                            setModalVisible(!modalVisible);
                         }} >
                             <Text style={styles.modalText}>Table: {modalPerson.tables}</Text>
                         </TouchableOpacity>
                         <Text style={styles.modalText}>Status: {modalPerson.sign == 1 ? "Here" : "Not Here"} </Text>
                         <Text style={styles.modalText}>ID: {modalPerson.ticket} </Text>
                         <Text style={styles.modalText}>Raffle: {modalPerson.raffle} </Text>
-                        <Button disabled={modalPerson.sign == 1 ? true : false} title={modalPerson.sign == 1 ? "Sign Out" : "Sign In"} onPress={() => { switchStatuss(modalPerson.id, modalPerson.sign, "int"); setScanned(false) }} />
+
                         <TouchableHighlight
-                            style={[styles.button, styles.buttonClose]}
+                            disabled={modalPerson.sign == 1 ? true : false}
+                            style={[styles.buttonBig, {opacity: modalPerson.sign == 1 ? 0.3 : 1}]}
+                            onPress={() => {
+                                switchStatuss(modalPerson.id, modalPerson.sign, "int");
+                                setScanned(false)
+                            }}>
+                            <Text style={[styles.textStyle, { color: "black", fontSize: 20 }]}>{modalPerson.sign == 1 ? "Sign Out" : "Sign In"}</Text>
+                        </TouchableHighlight>
+
+                        <TouchableHighlight
+                            style={[styles.button]}
                             onPress={() => { setModalVisible(!modalVisible); setScanned(false) }}>
-                            <Text style={styles.textStyle}>Close</Text>
+                            <Text style={[styles.textStyle, {color: "black"}]}>Close</Text>
                         </TouchableHighlight>
                     </View>
                 </View>

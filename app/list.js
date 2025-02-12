@@ -1,18 +1,19 @@
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome'
-import { faArrowDownAZ } from '@fortawesome/free-solid-svg-icons/faArrowDownAZ'
+import { faArrowDownAZ, width } from '@fortawesome/free-solid-svg-icons/faArrowDownAZ'
 import { faArrowDownZA } from '@fortawesome/free-solid-svg-icons/faArrowDownZA'
 import { faArrowDown19 } from '@fortawesome/free-solid-svg-icons/faArrowDown19'
-import { Stack, useRouter } from "expo-router";
+import { faXmark } from '@fortawesome/free-solid-svg-icons/faXmark'
+import { Stack, useNavigation, useRouter } from "expo-router";
 import * as SQLite from "expo-sqlite";
 import { StatusBar } from "expo-status-bar";
 import { useState, useEffect, useCallback, memo } from "react";
-import { Text, View, Button, Modal, TouchableHighlight, FlatList, TouchableOpacity, SafeAreaView, } from "react-native";
+import { Text, View, Button, Modal, TouchableHighlight, FlatList, TouchableOpacity, SafeAreaView, TextInput } from "react-native";
 import styles from "./style";
+import { Picker } from '@react-native-picker/picker';
+import Constants from 'expo-constants';
 
 export default function List() {
-    const navigation = useRouter();
-
-    const db = SQLite.openDatabase("WPB.db");
+    const db = SQLite.openDatabaseAsync("WPB.db");
 
     const [isLoading, setIsLoading] = useState(false);
     const [names, setNames] = useState([]);
@@ -23,6 +24,7 @@ export default function List() {
     const [modalVisible, setModalVisible] = useState(false);
     const [modalPerson, setModalPerson] = useState([]);
     const [order, setOrder] = useState("aalph");
+    const [text, onChangeText] = useState('');
     const url = process.env.apilist;
     const url2 = process.env.apisign;
 
@@ -40,7 +42,6 @@ export default function List() {
         // a message was received
         const msg = JSON.stringify(e.data);
         mystring = msg.replace(/["']/g, "");
-        console.log(mystring);
         if (mystring.startsWith("client:")) {
             setWsClient(mystring.replace("client:", ""));
         }
@@ -49,8 +50,8 @@ export default function List() {
         }
     };
 
-    ws.onclose = (e) => { };
-    ws.onerror = (e) => { };
+    ws.onclose = (e) => {console.log("closed")};
+    ws.onerror = (e) => {console.log("error")};
 
     useEffect(() => {
         fetch(url, {
@@ -60,23 +61,17 @@ export default function List() {
             }),
         })
             .then((resp) => resp.json())
-            .then((json) => setDisplayNames(json))
-            .catch((error) => console.error(error))
-            .finally(() => setIsLoading(false));
-
-        fetch(url, {
-            method: "get",
-            headers: new Headers({
-                Authorization: process.env.apikey,
-            }),
-        })
-            .then((resp) => resp.json())
-            .then((json) => setNames(json))
+            .then((json) => setNamesDb(Object.values(json)))
             .catch((error) => console.error(error))
             .finally(() => setIsLoading(false));
     }, []);
 
-    const jobTypes = ["None", 1, 2, 3, 4, 5, 6, 7, 8, 9];
+    const setNamesDb = (names) => {
+        setNames(names);
+        setDisplayNames(names);
+    }
+
+    const jobTypes = ["None", 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25];
     const statusTypes = ["None", "Here", "Not Here"];
 
     if (isLoading) {
@@ -131,37 +126,35 @@ export default function List() {
     };
 
     const switchStatuss = (id, status, src) => {
+        console.log('test')
         if (src == "ext") {
             const existingNames = [...names];
             const indexToUpdate = existingNames.findIndex((name) => name.id == id);
             existingNames[indexToUpdate].sign =
                 existingNames[indexToUpdate].sign === 1 ? 0 : 1;
             setNames(existingNames);
-            updateDisplayName(activeJobType, activeStatusType);
+            updateDisplayName(activeJobType, activeStatusType, text);
         }
         if (src == "int") {
-            fetch(url2 + id, {
+            fetch(url2 + "/" + id, {
                 method: "post",
                 headers: new Headers({
                     Authorization: process.env.apikey,
                     Client: wsClient,
                 }),
+                body: JSON.stringify({session: Constants.sessionId})
             })
-                .then((response) => response.json())
-                .then((responseData) => {
-                    //console.log(JSON.stringify(responseData));
+                .then((response) => {
+                    console.log(JSON.stringify(response));
                 })
                 .then((responseData) => {
                     const existingNames = [...names];
                     const indexToUpdate = existingNames.findIndex(
                         (name) => name.id == id,
                     );
-                    console.log(indexToUpdate, id);
                     existingNames[indexToUpdate].sign = status === 1 ? 0 : 1;
                     setNames(existingNames);
-                    console.log(existingNames[indexToUpdate].raffle);
-                    console.log(existingNames[indexToUpdate].ticket);
-                    updateDisplayName(activeJobType, activeStatusType);
+                    updateDisplayName(activeJobType, activeStatusType, text);
                     setModalVisible(!modalVisible);
                 })
                 .catch((error) => console.error(error));
@@ -173,23 +166,36 @@ export default function List() {
         setModalVisible(!modalVisible);
     };
 
-    const updateDisplayName = (table, status) => {
+    const updateDisplayName = (table, status, textIn) => {
+        console.log(textIn)
+        if (textIn !== "" && textIn !== null && textIn !== undefined) {
+            onChangeText(textIn);
+            var tempNames = names;
+            console.log('test')
+            var existingNames = tempNames.filter((tempNames) => tempNames.name.toLowerCase().includes(textIn.toLowerCase()));
+        } else if (textIn === null) {
+            textIn = text;
+            var tempNames = names;
+            console.log('test2')
+            var existingNames = tempNames.filter((tempNames) => tempNames.name.toLowerCase().includes(textIn.toLowerCase()));
+        } else {
+            console.log('test3')
+            onChangeText(textIn);
+            var existingNames = names;
+        }
+
         if (table == "None" && status == "None") {
-            const existingNames = names;
             setDisplayNames(existingNames);
         } else if (table == "None") {
-            const existingNames = names.filter(
-                (name) => name.sign === (status == "Here" ? 1 : 0),
-            );
-            setDisplayNames(existingNames);
+            setDisplayNames(existingNames
+                .filter((name) => name.sign === (status == 1 ? 1 : 0)));
         } else if (status == "None") {
-            const existingNames = names.filter((name) => name.tables === table);
-            setDisplayNames(existingNames);
+            setDisplayNames(existingNames
+                .filter((name) => name.tables === table));
         } else {
-            const existingNames = names.filter((name) => name.tables === table);
-            const existingNames2 = existingNames.filter(
-                (name) => name.sign === (status == "Here" ? 1 : 0),
-            );
+            const existingNames2 = existingNames
+                .filter((name) => name.tables === table)
+                .filter((name) => name.sign === (status == 1 ? 1 : 0));
             setDisplayNames(existingNames2);
         }
     };
@@ -201,14 +207,15 @@ export default function List() {
             <Text style={styles.textEntry20}>{item.tables}</Text>
             {/* 45,15,15,25 */}
             {/* <Button title='Delete' onPress={() => deleteName(name.id)} /> */}
-            <View style={{ width: "30%", alignItems: "center" }}>
-                <Button
-                    style={styles.button}
-                    title="Info"
+            <View style={{ width: "30%", alignItems: "center", color: "black" }}>
+                <TouchableHighlight
+                    style={[styles.button, {width: "50%", height: "65%", marginTop: 10, opacity: 0.9}]}
                     onPress={() => {
                         openSettingsModal(item);
                     }}
-                />
+                >
+                    <Text style={[styles.textStyle, {marginTop: -2, color: "black", opacity: 1}]}>Info</Text>
+                </TouchableHighlight>
             </View>
         </View>
     ));
@@ -241,38 +248,43 @@ export default function List() {
     };
 
     const toggleButton = () => {
+        console.log('test')
         if (order === "num") {
-            console.log(order)
             setOrder("aalph")
             const existingNames = names.sort((a, b) => a.id - b.id);
             setNames(existingNames);
-            updateDisplayName(activeJobType, activeStatusType);
-        }else if (order === "aalph"){
-            console.log(order)
+            updateDisplayName(activeJobType, activeStatusType, text);
+        } else if (order === "aalph") {
             setOrder("zalph")
             const existingNames = names.sort((a, b) => b.name.localeCompare(a.name));
             setNames(existingNames);
-            updateDisplayName(activeJobType, activeStatusType);
-        }else {
-            console.log(order)
+            updateDisplayName(activeJobType, activeStatusType, text);
+        } else {
             setOrder("num")
             const existingNames = names.sort((a, b) => a.name.localeCompare(b.name));
             setNames(existingNames);
-            updateDisplayName(activeJobType, activeStatusType);
+            updateDisplayName(activeJobType, activeStatusType, text);
         }
         print(order);
     };
 
     function sortIcon(sort) {
-        if(sort == "aalph"){
+        if (sort == "aalph") {
             return faArrowDown19
         }
-        else if(sort == "zalph"){
+        else if (sort == "zalph") {
             return faArrowDownZA
         }
-        else{
+        else {
             return faArrowDownAZ
         }
+    }
+
+    function clearSearch() {
+        setActiveJobType("None")
+        setActiveStatusType("None")
+        onChangeText('')
+        updateDisplayName("None", "None", "")
     }
 
     return (
@@ -280,19 +292,83 @@ export default function List() {
             <Stack.Screen
                 options={{
                     title: "Guest List",
-                    headerStyle: { backgroundColor: "#f4511e" },
-                    headerTintColor: "#fff",
+                    headerStyle: { backgroundColor: "#fff" },
+                    headerTintColor: "black",
                     headerTitleStyle: {
                         fontWeight: "bold",
                     },
                     headerRight: () => (
-                        <TouchableOpacity activeOpacity={0.5} title={order} onPress={toggleButton} >
-                            <FontAwesomeIcon icon={sortIcon(order)} color="black" size={30} />
-                        </TouchableOpacity>
+                        <>
+                            <TouchableOpacity activeOpacity={0.2} title={order} onPressIn={toggleButton} >
+                                <FontAwesomeIcon icon={sortIcon(order)} color="black" size={30} />
+                            </TouchableOpacity>
+                        </>
                     )
                 }}
             />
-            <View style={{ height: "11%" }}>
+
+            <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
+                <View style={{ flex: 8 }}>
+                    <TextInput
+                        style={styles.input}
+                        value={text}
+                        onChangeText={text => updateDisplayName(activeJobType, activeStatusType, text)}
+                        placeholder='Search...'
+                        clearButtonMode='always'
+                    />
+                </View>
+                <View style={{ flex: 1 }}>
+                    <TouchableOpacity activeOpacity={0.2} title={order} onPressIn={clearSearch} >
+                        <FontAwesomeIcon style={{ paddingTop: 65 }} icon={faXmark} color="black" size={30} />
+                    </TouchableOpacity>
+                </View>
+            </View>
+
+            <View style={{ flexDirection: "row", justifyContent: "space-between", marginLeft: 5 }}>
+                <View style={{ flex: 3 }}>
+                    <Text style={styles.title}>Filter Table</Text>
+                    <Picker
+                        selectedValue={activeJobType}
+                        prompt='Fiter Table'
+                        onValueChange={(itemValue, itemIndex) => {
+                            setActiveJobType(itemValue)
+                            updateDisplayName(itemValue, activeStatusType, text)
+                        }}>
+                        <Picker.Item label="None" value="None" />
+                        <Picker.Item label="1" value={1} />
+                        <Picker.Item label="2" value={2} />
+                        <Picker.Item label="3" value={3} />
+                        <Picker.Item label="4" value={4} />
+                        <Picker.Item label="5" value={5} />
+                        <Picker.Item label="6" value={6} />
+                        <Picker.Item label="7" value={7} />
+                        <Picker.Item label="8" value={8} />
+                        <Picker.Item label="9" value={9} />
+                        <Picker.Item label="10" value={10} />
+                        <Picker.Item label="11" value={11} />
+                        <Picker.Item label="12" value={12} />
+                        <Picker.Item label="13" value={13} />
+                        <Picker.Item label="14" value={14} />
+                        <Picker.Item label="15" value={15} />
+                    </Picker>
+                </View>
+                <View style={{ flex: 3 }}>
+                    <Text style={styles.title}>Filter Status</Text>
+                    <Picker
+                        selectedValue={activeStatusType}
+                        prompt='Filter Status'
+                        onValueChange={(itemValue, itemIndex) => {
+                            setActiveStatusType(itemValue)
+                            updateDisplayName(activeJobType, itemValue, text)
+                        }}>
+                        <Picker.Item label="None" value="None" />
+                        <Picker.Item label="Here" value={1} />
+                        <Picker.Item label="Not Here" value={2} />
+                    </Picker>
+                </View>
+            </View>
+
+            {/* <View>
                 <Text style={styles.title}>Filter Table</Text>
                 <FlatList
                     data={jobTypes}
@@ -312,8 +388,8 @@ export default function List() {
                     contentContainerStyle={{ columnGap: 12 }}
                     horizontal
                 />
-            </View>
-            <View style={{ height: "11%" }}>
+            </View> */}
+            {/* <View>
                 <Text style={styles.title}>Filter Status</Text>
                 <FlatList
                     data={statusTypes}
@@ -333,23 +409,22 @@ export default function List() {
                     contentContainerStyle={{ columnGap: 12 }}
                     horizontal
                 />
-            </View>
-            <View style={{ height: "3%" }}>
-                <Text>
-                    People Here: {displayNames.filter((name) => name.sign === 1).length}/
-                    {displayNames.length}
+            </View> */}
+            <View style={[styles.rowEntryHeader, { height: "5%", marginLeft: 5 }]}>
+                <Text style={{ fontSize: 15 }}>
+                    People Here: {displayNames.filter((name) => name.sign === 1).length}
                 </Text>
             </View>
-            <View style={styles.rowEntryHeader}>
-                <Text style={styles.textEntry50}>Name</Text>
+            <View style={[styles.rowEntryHeader, { height: "5%" }]}>
+                <Text style={[styles.textEntry50, { fontSize: 20 }]}>Name</Text>
                 {/* <Text style={styles.textEntry15}>ID</Text> */}
-                <Text style={styles.textEntry20}>Table</Text>
+                <Text style={[styles.textEntry20, { fontSize: 20 }]}>Table</Text>
                 {/* 45,15,15,25 */}
                 <View style={{ width: "30%", alignItems: "center" }}>
                     <Text style={styles.textEntry} />
                 </View>
             </View>
-            <View style={{ height: "70%", marginTop: 10 }}>{showNames()}</View>
+            <View style={{ height: "71%", marginTop: 0 }}>{showNames()}</View>
             <StatusBar style="auto" />
             <Modal
                 animationType="fade"
@@ -363,36 +438,41 @@ export default function List() {
                         <Text style={styles.modalName}>{modalPerson.name}</Text>
                         <TouchableOpacity onPress={() => {
                             setActiveJobType(modalPerson.tables);
-                            updateDisplayName(modalPerson.tables, activeStatusType);
+                            updateDisplayName(modalPerson.tables, activeStatusType, text);
                             setModalVisible(!modalVisible);
                         }} >
                             <Text style={styles.modalText}>Table: {modalPerson.tables}</Text>
                         </TouchableOpacity>
                         <TouchableOpacity onPress={() => {
-                            setActiveStatusType(modalPerson.status);
-                            updateDisplayName(activeJobType, modalPerson.status);
+                            setActiveStatusType(modalPerson.sign);
+                            tempStat = modalPerson.sign == 1 ? 1 : 0;
+                            updateDisplayName(activeJobType, tempStat, text);
                             setModalVisible(!modalVisible);
                         }} >
                             <Text style={styles.modalText}>
                                 Status: {modalPerson.sign == 1 ? "Here" : "Not Here"}{" "}
-                            </Text>                       
+                            </Text>
                         </TouchableOpacity>
+
                         <Text style={styles.modalText}>ID: {modalPerson.ticket} </Text>
                         <Text style={styles.modalText}>Raffle: {modalPerson.raffle} </Text>
-                        <Button
-                            title={modalPerson.sign == 1 ? "Sign Out" : "Sign In"}
+
+                        <TouchableHighlight
+                            style={styles.buttonBig}
                             onPress={() => {
                                 switchStatuss(modalPerson.id, modalPerson.sign, "int");
-                            }}
-                        />
+                            }}>
+                            <Text style={[styles.textStyle, {color: "black", fontSize: 20}]}>{modalPerson.sign == 1 ? "Sign Out" : "Sign In"}</Text>
+                        </TouchableHighlight>
+
                         {/* <Button title="Delete" onPress={() => {deleteName(modalPerson.id)}} /> */}
                         <TouchableHighlight
-                            style={[styles.button, styles.buttonClose]}
+                            style={styles.button}
                             onPress={() => {
                                 setModalVisible(!modalVisible);
                             }}
                         >
-                            <Text style={styles.textStyle}>Close</Text>
+                            <Text style={[styles.textStyle, {color: "black"}]}>Close</Text>
                         </TouchableHighlight>
                     </View>
                 </View>

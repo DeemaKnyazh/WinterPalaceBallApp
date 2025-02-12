@@ -2,21 +2,23 @@ import { StyleSheet, Text, View, Button, Image, TouchableOpacity } from "react-n
 import { useRouter, Stack } from "expo-router";
 import Toast from 'react-native-toast-message';
 import { useState, useEffect } from 'react';
-
+import AsyncStorage from '@react-native-async-storage/async-storage'
 
 export default function Home() {
+  const [ws, setWs] = useState(new WebSocket(process.env.wsurl));
+  const [wsClient, setWsClient] = useState('None');
 
   const navigation = useRouter();
 
   //TODO - Send Device ID, Close any existing websockets with that ID
 
   return (
-
     <View style={styles.container}>
       <Stack.Screen
         options={{
+          headerShown: false,
           title: 'Welcome',
-          headerStyle: { backgroundColor: '#f4511e' },
+          headerStyle: { backgroundColor: 'white' },
           headerTintColor: '#fff',
           headerTitleStyle: {
             fontWeight: 'bold',
@@ -29,14 +31,20 @@ export default function Home() {
 
       <View style={styles.container}>
         <TouchableOpacity style={styles.buttons}
-          onPress={() => navigation.push("/scanner")}
-        >
-          <Text style={styles.buttonText}>Scanner</Text>
+          onPress={() => navigation.push({
+            pathname: "/scanner",
+            params:{
+              WSObject: ws,
+              WSClient: wsClient
+            }
+          })}>
+          <Text style={styles.buttonText}>Scanners</Text>
         </TouchableOpacity>
+
         <TouchableOpacity style={styles.buttons}
           onPress={() => navigation.push("/list")}
         >
-        <Text style={styles.buttonText}>Guest List</Text>
+          <Text style={styles.buttonText}>Guest List</Text>
         </TouchableOpacity>
       </View>
       <Toast />
@@ -72,7 +80,8 @@ const styles = StyleSheet.create({
     margin: 5,
     padding: 5,
     elevation: 2,
-    backgroundColor: '#f4511e',
+    backgroundColor: 'black',
+    boxShadow: '0 0 10px rgba(0, 0, 0, 0.2)'
   },
   buttonText: {
     fontSize: 20,

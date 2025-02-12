@@ -9,7 +9,6 @@ export const unstable_settings = {
 };
 
 const Layout = () => {
-
   return (
     <Stack initialRouteName="index">
       <Stack.Screen name="index" />

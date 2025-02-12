@@ -32,10 +32,10 @@ const styles = StyleSheet.create({
         marginTop: 22,
     },
     modalView: {
-        margin: 25,
+        margin: 15,
         backgroundColor: 'white',
         borderRadius: 20,
-        padding: 35,
+        padding: 25,
         alignItems: 'center',
         shadowColor: '#000',
         shadowOffset: {
@@ -45,7 +45,7 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.25,
         shadowRadius: 4,
         elevation: 5,
-        height: "45%"
+        height: "50%"
     },
     textStyle: {
         color: 'white',
@@ -105,14 +105,15 @@ const styles = StyleSheet.create({
     modalText: {
         fontSize: 20,
         paddingVertical: 7,
-        paddingHorizontal: 30,
+        paddingHorizontal: 20,
     },
     textEntryModal: {
         fontSize: 20,
         textDecorationLine: 'underline'
     },
     buttonClose: {
-        backgroundColor: '#2196F3',
+        backgroundColor: 'black',
+        color: 'white',
         marginTop: 20
     },
     button: {
@@ -121,7 +122,22 @@ const styles = StyleSheet.create({
         padding: 10,
         elevation: 2,
         width: "30%",
-        marginTop: "10%",
+        marginTop: "5%",
+        backgroundColor: 'white',
+        color: 'black',
+        boxShadow: '0 0 10px rgba(0, 0, 0, 0.2)'
+    },
+    buttonBig: {
+        borderRadius: 8,
+        margin: 10,
+        padding: 10,
+        paddingHorizontal: 40,
+        elevation: 2,
+        width: "70%",
+        marginTop: "5%",
+        backgroundColor: 'white',
+        color: 'black',
+        boxShadow: '0 0 10px rgba(0, 0, 0, 0.2)'
     },
     containerText: {
         width: "100%",
@@ -142,6 +158,7 @@ const styles = StyleSheet.create({
     }),
     tabText: (activeJobType, item) => ({
         color: activeJobType === item ? 'green' : 'gray',
+        paddingVertical: 1
     }),
     title: {
         fontSize: 20,
@@ -156,8 +173,9 @@ const styles = StyleSheet.create({
         alignSelf: 'stretch',
         justifyContent: 'space-between',
         borderTopColor: '#d1d1d1',
-        borderTopWidth: 1,
+        borderTopWidth: 3,
         paddingTop: 5,
+        paddingBottom: 5,
         height: "4%"
     },
     home: {
@@ -168,7 +186,7 @@ const styles = StyleSheet.create({
         margin: 25,
         backgroundColor: 'white',
         borderRadius: 20,
-        padding: 35,
+        padding: 25,
         alignItems: 'center',
         shadowColor: '#000',
         shadowOffset: {
@@ -179,6 +197,15 @@ const styles = StyleSheet.create({
         shadowRadius: 4,
         elevation: 5,
         height: "45%"
+    },
+    input: {
+        height: 40,
+        marginTop: 12,
+        marginLeft: 4, 
+        borderWidth: 1,
+        padding: 10,
+        paddingHorizontal: 30,
+        marginRight: 20,
     },
 
 });
