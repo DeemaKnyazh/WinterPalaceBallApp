@@ -1,5 +1,6 @@
 import { Stack } from "expo-router";
 // import * as SplashScreen from "expo-splash-screen";
+import { WebSocketProvider } from './WsContext';
 
 // SplashScreen.preventAutoHideAsync();
 
@@ -10,9 +11,11 @@ export const unstable_settings = {
 
 const Layout = () => {
   return (
-    <Stack initialRouteName="index">
-      <Stack.Screen name="index" />
-    </Stack>
+    <WebSocketProvider>
+      <Stack initialRouteName="index">
+        <Stack.Screen name="index" />
+      </Stack>
+    </WebSocketProvider>
   )
 };
 

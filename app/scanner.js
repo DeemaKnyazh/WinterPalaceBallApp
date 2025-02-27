@@ -1,20 +1,22 @@
 import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, Text, View, TextInput, Button, Modal, TouchableHighlight, ScrollView, FlatList, TouchableOpacity } from 'react-native';
+import { StyleSheet, Text, View, TextInput, Button, Modal, TouchableHighlight, ScrollView, FlatList, TouchableOpacity, Pressable } from 'react-native';
 import * as SQLite from 'expo-sqlite';
-import { useState, useEffect, useRoute } from 'react';
+import { useState, useEffect, useRoute, useContext } from 'react';
 import { CameraView, CameraType, useCameraPermissions } from 'expo-camera';
 import styles from './style';
 import { Stack, useRouter } from "expo-router";
 import * as Haptics from 'expo-haptics';
 import Toast from 'react-native-toast-message';
-import { apikey, apilist, apisign, wsurl } from "@env";
+import { WebSocketContext } from './WsContext'
+
+let names = [];
+let wsClient;
 
 export default function Scanner() {
     const navigation = useRouter();
 
     const db = SQLite.openDatabaseAsync('WPB.db');
     const [isLoading, setIsLoading] = useState(false);
-    const [names, setNames] = useState([]);
     const [scanned, setScanned] = useState(false);
     const [modalVisible, setModalVisible] = useState(false);
     const [modalPerson, setModalPerson] = useState([]);
@@ -25,44 +27,24 @@ export default function Scanner() {
     const url = process.env.apilist
     const url2 = process.env.apisign
 
-    const [ws, setWs] = useState(new WebSocket(process.env.wsurl));
-    //ws.close();
-    const [wsClient, setWsClient] = useState("Noner");
-    ws.onopen = () => {
-        // connection opened
-        console.log("opened");
-    };
+    const [subscribe, unsubscribe] = useContext(WebSocketContext)
+    useEffect(() => {
+        const channelName = "lists"
+        subscribe(channelName, (message) => {
+            if (message.startsWith("client:")) {
+                wsClient = message.replace("client:", "")
+            }
+            if (message.startsWith("status ")) {
+                console.log('testetsets')
+                switchStatuss(message.replace("status ", ""), 1, "ext");
+            }
+        })
 
-    ws.onmessage = (e) => {
-        // a message was received
-        const msg = JSON.stringify(e.data);
-        mystring = msg.replace(/["']/g, "");
-        if (mystring.startsWith("client:")) {
-            setWsClient(mystring.replace("client:", ""));
+        return () => {
+            /* unsubscribe from channel during cleanup */
+            unsubscribe(channelName)
         }
-        if (mystring.startsWith("status ")) {
-            switchStatuss(mystring.replace("status ", ""), 1, "ext")
-        }
-    };
-
-    ws.onclose = (e) => {
-    };
-    ws.onerror = (e) => {
-    };
-
-    // useEffect(() => {
-    //     db.transaction(tx => {
-    //         //tx.executeSql('DELETE TABLE names')
-    //         tx.executeSql('CREATE TABLE IF NOT EXISTS names (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, tables INTEGER, sign INTEGER DEFAULT 0, ticket TEXT)')
-    //     });
-
-    //     db.transaction(tx => {
-    //         tx.executeSql('SELECT * FROM names ORDER BY name', null,
-    //             (txObj, resultSet) => setNames(resultSet.rows._array),
-    //             (txObj, error) => console.log(error))
-    //     });
-    //     setIsLoading(false);
-    // }, [])
+    }, [subscribe, unsubscribe])
 
     useEffect(() => {
         fetch(url, {
@@ -72,7 +54,7 @@ export default function Scanner() {
             })
         })
             .then((resp) => resp.json())
-            .then((json) => setNames(json))
+            .then((json) => names = json)
             .catch((error) => console.error(error))
             .finally(() => setIsLoading(false));
     }, []);
@@ -99,12 +81,9 @@ export default function Scanner() {
         setFacing(current => (current === 'back' ? 'front' : 'back'));
     }
 
-    const jobTypes = ["None", 1, 2, 3, 4, 5, 6, 7, 8, 9]
-    const statusTypes = ["None", "Here", "Not Here"]
-
     const showSuccessInToast = (name) => {
         Toast.show({
-            type: 'success',
+            type: 'success',    
             text1: name + ' signed in Successfully',
             position: 'top',
             visibilityTime: 50000,
@@ -164,28 +143,18 @@ export default function Scanner() {
         }
     };
 
-    const switchStatuss = (id, status, src) => {
-        // db.transaction(tx => {
-        //     tx.executeSql('UPDATE names SET sign = ? WHERE id = ?', [status === 1 ? 0 : 1, id],
-        //         (txObj, resultSet) => {
-        //             if (resultSet.rowsAffected > 0) {
-        //                 let existingNames = [...names];
-        //                 const indexToUpdate = existingNames.findIndex(name => name.id === id);
-        //                 existingNames[indexToUpdate].sign = status === 1 ? 0 : 1;
-        //                 setNames(existingNames);
-        //                 updateDisplayName(activeJobType, activeStatusType);
-        //                 setCurrentNameTest(undefined);
-        //                 setModalVisible(!modalVisible)
-        //             }
-        //         },
-        //         (txObj, error) => console.log(error)
-        //     );
-        // });
+    function switchStatuss(id, status, src){
         if (src == "ext") {
             let existingNames = [...names];
             const indexToUpdate = existingNames.findIndex(name => name.id == id);
             existingNames[indexToUpdate].sign = existingNames[indexToUpdate].sign === 1 ? 0 : 1;
-            setNames(existingNames);
+            names = existingNames
+            //TODO fix this, display should update when externally changed
+            let tempNames = [...existingNames]
+            let testing = tempNames[indexToUpdate]
+            if(modalPerson.id == testing.id){
+                setModalPerson({"id": testing.id, "name": testing.name, "tables": testing.tables, "sign": testing.sign, "ticket": testing.ticket, "raffle": testing.raffle, "year": testing.year})
+            }
         }
         if (src == "int") {
             fetch(url2 + "/" + id, {
@@ -196,14 +165,10 @@ export default function Scanner() {
                 })
             })
                 .then((responseData) => {
-                    console.log(JSON.stringify(responseData));
-                })
-                .then((responseData) => {
                     let existingNames = [...names];
                     const indexToUpdate = existingNames.findIndex(name => name.id == id);
-                    console.log(indexToUpdate, id)
                     existingNames[indexToUpdate].sign = status === 1 ? 0 : 1;
-                    setNames(existingNames);
+                    names = existingNames
                     setModalVisible(!modalVisible)
                 })
                 .catch((error) => console.error(error))
@@ -238,6 +203,7 @@ export default function Scanner() {
             </View>
             <View style={styles.scannerView}>
                 <Text style={styles.modalName}>Last Scan</Text>
+                {console.log(modalPerson)}
                 <Text style={styles.modalText}>{modalPerson.name}</Text>
                 <Text style={styles.modalText}>Table: {modalPerson.tables}</Text>
                 <Text style={styles.modalText}>Status: {modalPerson.sign == 1 ? "Here" : "Not Here"} </Text>
@@ -259,21 +225,23 @@ export default function Scanner() {
                         <Text style={styles.modalText}>ID: {modalPerson.ticket} </Text>
                         <Text style={styles.modalText}>Raffle: {modalPerson.raffle} </Text>
 
-                        <TouchableHighlight
+                        {/* <Button title="Delete" onPress={() => {deleteName(modalPerson.id)}} /> */}
+
+                        <Pressable
                             disabled={modalPerson.sign == 1 ? true : false}
-                            style={[styles.buttonBig, {opacity: modalPerson.sign == 1 ? 0.3 : 1}]}
+                            style={({pressed}) => [styles.buttonBig, {backgroundColor: pressed ? "black" : "white", opacity: modalPerson.sign == 1 ? 0.3 : 1 }]}
                             onPress={() => {
                                 switchStatuss(modalPerson.id, modalPerson.sign, "int");
                                 setScanned(false)
                             }}>
-                            <Text style={[styles.textStyle, { color: "black", fontSize: 20 }]}>{modalPerson.sign == 1 ? "Sign Out" : "Sign In"}</Text>
-                        </TouchableHighlight>
+                            {({pressed}) => <Text style={[styles.textStyle, { color: pressed ? "white" : "black", fontSize: 20 }]}>{modalPerson.sign == 1 ? "Sign Out" : "Sign In"}</Text>}
+                        </Pressable>
 
-                        <TouchableHighlight
-                            style={[styles.button]}
+                        <Pressable
+                            style={({pressed}) => [styles.button, {backgroundColor: pressed ? "black" : "white"}]}
                             onPress={() => { setModalVisible(!modalVisible); setScanned(false) }}>
-                            <Text style={[styles.textStyle, {color: "black"}]}>Close</Text>
-                        </TouchableHighlight>
+                            {({pressed}) => <Text style={[styles.textStyle, { color: pressed ? "white" : "black" }]}>Close</Text>}
+                        </Pressable>
                     </View>
                 </View>
             </Modal>
