@@ -5,12 +5,7 @@ import { useState, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage'
 
 export default function Home() {
-  const [ws, setWs] = useState(new WebSocket(process.env.wsurl));
-  const [wsClient, setWsClient] = useState('None');
-
   const navigation = useRouter();
-
-  //TODO - Send Device ID, Close any existing websockets with that ID
 
   return (
     <View style={styles.container}>
@@ -33,16 +28,14 @@ export default function Home() {
         <TouchableOpacity style={styles.buttons}
           onPress={() => navigation.push({
             pathname: "/scanner",
-            params:{
-              WSObject: ws,
-              WSClient: wsClient
-            }
           })}>
           <Text style={styles.buttonText}>Scanners</Text>
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.buttons}
-          onPress={() => navigation.push("/list")}
+          onPress={() => navigation.push({
+            pathname: "/list",
+          })}
         >
           <Text style={styles.buttonText}>Guest List</Text>
         </TouchableOpacity>
